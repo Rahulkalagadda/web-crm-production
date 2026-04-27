@@ -5,6 +5,10 @@ export const authService = {
   login: async (credentials: any): Promise<ApiResponse<{ user: User; accessToken: string; refreshToken: string }>> => {
     return apiClient.post('/auth/login', credentials);
   },
+
+  register: async (credentials: any): Promise<ApiResponse<{ user: User; accessToken: string; refreshToken: string }>> => {
+    return apiClient.post('/auth/register', credentials);
+  },
   
   logout: async () => {
     await apiClient.post('/auth/logout');
