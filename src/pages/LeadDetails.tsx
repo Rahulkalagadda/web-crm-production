@@ -302,7 +302,7 @@ export const LeadDetails: React.FC = () => {
             <div className="space-y-10 relative">
               <div className="absolute left-4 top-2 bottom-2 w-0.5 bg-surface-container-highest"></div>
               {activities.length > 0 ? (
-                activities.slice(0, 5).map((act, i) => {
+                activities.slice(0, 5).map((act) => {
                   const typeMap: any = {
                     LEAD_CREATED: { title: 'Lead Created', icon: 'person_add', color: 'bg-emerald-500' },
                     LEAD_ASSIGNED: { title: 'Lead Assigned', icon: 'assignment_ind', color: 'bg-blue-500' },

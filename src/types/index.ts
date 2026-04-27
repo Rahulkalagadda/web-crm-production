@@ -9,6 +9,8 @@ export interface User {
   role: UserRole;
   status?: string;
   avatar?: string;
+  title?: string;
+  inviteLink?: string;
   createdAt: string;
 }
 
@@ -28,6 +30,21 @@ export interface AuthState {
   refreshToken: string | null;
   isAuthenticated: boolean;
   tenantId: string | null;
+}
+
+export interface Property {
+  id: string;
+  name: string;
+  description?: string;
+  price: number;
+  location: string;
+  type: string;
+  sqft: number;
+  status: string;
+  images: string[];
+  yearBuilt?: number;
+  createdAt: string;
+  version: number;
 }
 
 export interface Lead {

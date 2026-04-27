@@ -20,7 +20,7 @@ const INITIAL_ROLES = [
 ];
 
 export const Settings: React.FC = () => {
-  const { tenant, setTenant } = useAuthStore();
+  const { setTenant } = useAuthStore();
   const [activeTab, setActiveTab] = useState('Company');
   const tabs = ['Company', 'Pipeline Setup', 'Roles & Permissions', 'Billing'];
 

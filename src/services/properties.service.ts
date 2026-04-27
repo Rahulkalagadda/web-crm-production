@@ -11,6 +11,7 @@ export interface Property {
   sqft: number;
   status: string;
   images: string[];
+  yearBuilt?: number;
   createdAt: string;
   version: number;
 }
