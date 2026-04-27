@@ -22,7 +22,10 @@ export const Auth: React.FC = () => {
     setError('');
     
     try {
-      const response = await authService.login({ email, password });
+      const response = isLogin 
+        ? await authService.login({ email, password })
+        : await authService.register({ email, password });
+        
       if (response.success) {
         setSuccess(true);
         setAuth(response.data.user, response.data.accessToken, response.data.refreshToken);
