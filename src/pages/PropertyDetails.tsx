@@ -1,42 +1,86 @@
-import React, { useState } from 'react';
-import { motion } from 'framer-motion';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { useNavigate, useParams } from 'react-router-dom';
+import { propertiesService, type Property } from '../services/properties.service';
+import toast from 'react-hot-toast';
 
 export const PropertyDetails: React.FC = () => {
+  const { id } = useParams();
   const navigate = useNavigate();
+  const [property, setProperty] = useState<Property | null>(null);
+  const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('Overview');
+  const [showEditModal, setShowEditModal] = useState(false);
 
-  const property = {
-    id: 1,
-    name: 'Sky Tower Penthouse',
-    location: '742 Evergreen Terrace, Downtown Los Angeles, CA 90012',
-    price: '$4,250,000',
-    status: 'Available',
-    statusCls: 'chip-emerald',
-    type: 'Penthouse',
-    sqft: '4,500 sqft',
-    beds: 4,
-    baths: 5,
-    yearBuilt: 2022,
-    images: [
-      'https://images.unsplash.com/photo-1512917774080-9991f1c4c750?auto=format&fit=crop&w=1200&q=80',
-      'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=800&q=80',
-      'https://images.unsplash.com/photo-1600607687920-4e2a09cf159d?auto=format&fit=crop&w=800&q=80',
-    ],
-    features: ['High Ceilings', 'Floor-to-Ceiling Windows', 'Private Elevator', 'Wine Cellar', 'Smart Home Integration', 'Concierge Service'],
-    description: 'Experience unparalleled luxury in this breathtaking Sky Tower Penthouse. Perched on the 64th floor, this architectural masterpiece offers panoramic views of the Los Angeles skyline and the Pacific Ocean. Featuring bespoke finishes, a chef-grade kitchen, and a private infinity pool on the terrace, this residence is the pinnacle of elite urban living.',
-    assignedAgent: {
-      name: 'Sarah Jenkins',
-      role: 'Luxury Specialist',
-      img: 'https://i.pravatar.cc/100?img=44'
+  // Edit Form State
+  const [name, setName] = useState('');
+  const [price, setPrice] = useState('');
+  const [sqft, setSqft] = useState('');
+  const [location, setLocation] = useState('');
+  const [description, setDescription] = useState('');
+
+  useEffect(() => {
+    if (!id) return;
+    const fetchProperty = async () => {
+      setLoading(true);
+      try {
+        const res = await propertiesService.getPropertyById(id);
+        if (res.success) {
+          setProperty(res.data);
+          setName(res.data.name);
+          setPrice(res.data.price.toString());
+          setSqft(res.data.sqft.toString());
+          setLocation(res.data.location);
+          setDescription(res.data.description || '');
+        }
+      } catch (error) {
+        toast.error('Failed to load property details');
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchProperty();
+  }, [id]);
+
+  const handleShare = () => {
+    navigator.clipboard.writeText(window.location.href);
+    toast.success('Listing link copied to clipboard!');
+  };
+
+  const handleUpdate = async () => {
+    if (!id || !property) return;
+    try {
+      const res = await propertiesService.updateProperty(id, {
+        name,
+        price: parseFloat(price),
+        sqft: parseInt(sqft),
+        location,
+        description,
+        version: property.version,
+      });
+      if (res.success) {
+        setProperty(res.data);
+        setShowEditModal(false);
+        toast.success('Property updated successfully');
+      }
+    } catch (error) {
+      toast.error('Failed to update property');
     }
   };
+
+  if (loading) return (
+    <div className="p-20 text-center font-bold text-outline">Loading high-resolution property data...</div>
+  );
+
+  if (!property) return (
+    <div className="p-20 text-center font-bold text-outline">Property not found.</div>
+  );
 
   return (
     <motion.div
       initial={{ opacity: 0, x: 20 }}
       animate={{ opacity: 1, x: 0 }}
-      transition={{ duration: 0.3, ease: [0.2, 0, 0, 1] }}
+      transition={{ duration: 0.3, ease: 'easeOut' as any }}
       className="p-8 max-w-7xl mx-auto w-full"
       style={{ fontFamily: 'Inter, sans-serif' }}
     >
@@ -52,7 +96,7 @@ export const PropertyDetails: React.FC = () => {
           <div>
             <div className="flex items-center gap-3 mb-1">
               <h2 className="text-3xl font-black text-on-surface tracking-tight">{property.name}</h2>
-              <span className={`chip ${property.statusCls}`}>{property.status}</span>
+              <span className={`chip ${property.status === 'Sold' ? 'chip-red' : property.status === 'Pending' ? 'chip-amber' : 'chip-emerald'}`}>{property.status}</span>
             </div>
             <p className="text-outline font-medium text-sm flex items-center gap-1.5">
               <span className="material-symbols-outlined text-sm text-primary">location_on</span> {property.location}
@@ -60,10 +104,10 @@ export const PropertyDetails: React.FC = () => {
           </div>
         </div>
         <div className="flex items-center gap-3">
-          <button className="btn-secondary py-2.5 px-5 flex items-center gap-2">
+          <button onClick={() => setShowEditModal(true)} className="btn-secondary py-2.5 px-5 flex items-center gap-2">
             <span className="material-symbols-outlined text-[20px]">edit</span> Edit Property
           </button>
-          <button className="bg-primary text-white px-6 py-2.5 rounded-xl font-bold flex items-center gap-2 shadow-xl shadow-primary/20 hover:scale-[1.02] active:scale-95 transition-all">
+          <button onClick={handleShare} className="bg-primary text-white px-6 py-2.5 rounded-xl font-bold flex items-center gap-2 shadow-xl shadow-primary/20 hover:scale-[1.02] active:scale-95 transition-all">
             <span className="material-symbols-outlined text-[20px]">share</span> Share Listing
           </button>
         </div>
@@ -72,15 +116,15 @@ export const PropertyDetails: React.FC = () => {
       {/* Hero Image Gallery */}
       <section className="grid grid-cols-12 gap-4 mb-8 h-[500px]">
         <div className="col-span-8 rounded-3xl overflow-hidden shadow-2xl relative group">
-          <img className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" src={property.images[0]} alt="Hero" />
+          <img className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" src={property.images?.[0] || 'https://images.unsplash.com/photo-1512917774080-9991f1c4c750?auto=format&fit=crop&w=1200&q=80'} alt="Hero" />
           <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent"></div>
         </div>
         <div className="col-span-4 flex flex-col gap-4">
           <div className="flex-1 rounded-3xl overflow-hidden shadow-lg group">
-            <img className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" src={property.images[1]} alt="Gallery 1" />
+            <img className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" src={property.images?.[1] || 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=800&q=80'} alt="Gallery 1" />
           </div>
           <div className="flex-1 rounded-3xl overflow-hidden shadow-lg group relative">
-            <img className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" src={property.images[2]} alt="Gallery 2" />
+            <img className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" src={property.images?.[2] || 'https://images.unsplash.com/photo-1600607687920-4e2a09cf159d?auto=format&fit=crop&w=800&q=80'} alt="Gallery 2" />
             <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
               <span className="text-white font-black text-sm uppercase tracking-widest">+12 More Photos</span>
             </div>
@@ -94,10 +138,10 @@ export const PropertyDetails: React.FC = () => {
           {/* Key Stats */}
           <div className="grid grid-cols-4 gap-4">
             {[
-              { label: 'Price', val: property.price, icon: 'payments' },
-              { label: 'Square Feet', val: property.sqft, icon: 'square_foot' },
-              { label: 'Bedrooms', val: property.beds, icon: 'bed' },
-              { label: 'Bathrooms', val: property.baths, icon: 'bathtub' },
+              { label: 'Price', val: `$${Number(property.price).toLocaleString()}`, icon: 'payments' },
+              { label: 'Square Feet', val: `${property.sqft} sqft`, icon: 'square_foot' },
+              { label: 'Bedrooms', val: '4', icon: 'bed' },
+              { label: 'Bathrooms', val: '5', icon: 'bathtub' },
             ].map(stat => (
               <div key={stat.label} className="card p-5 text-center">
                 <span className="material-symbols-outlined text-primary mb-2 text-2xl">{stat.icon}</span>
@@ -155,7 +199,7 @@ export const PropertyDetails: React.FC = () => {
                     <div className="space-y-4">
                       <h4 className="text-sm font-black text-on-surface uppercase tracking-widest">Elite Features</h4>
                       <div className="flex flex-wrap gap-2">
-                        {property.features.map(f => (
+                        {['High Ceilings', 'Wine Cellar', 'Smart Home'].map(f => (
                           <span key={f} className="text-[10px] font-black uppercase tracking-widest px-3 py-1 bg-surface-container rounded-full text-outline">
                             {f}
                           </span>
@@ -184,10 +228,10 @@ export const PropertyDetails: React.FC = () => {
           <div className="card p-8 text-center">
             <h4 className="text-[10px] font-black text-outline uppercase tracking-widest mb-6">Listing Agent</h4>
             <div className="flex flex-col items-center gap-4">
-              <img className="w-24 h-24 rounded-3xl object-cover border-4 border-white shadow-xl" src={property.assignedAgent.img} alt={property.assignedAgent.name} />
+              <img className="w-24 h-24 rounded-3xl object-cover border-4 border-white shadow-xl" src="https://i.pravatar.cc/100?img=44" alt="Agent" />
               <div>
-                <h5 className="text-lg font-black text-on-surface">{property.assignedAgent.name}</h5>
-                <p className="text-sm font-bold text-primary">{property.assignedAgent.role}</p>
+                <h5 className="text-lg font-black text-on-surface">Sarah Jenkins</h5>
+                <p className="text-sm font-bold text-primary">Luxury Specialist</p>
               </div>
             </div>
             <div className="grid grid-cols-2 gap-3 mt-8">
@@ -233,6 +277,42 @@ export const PropertyDetails: React.FC = () => {
           </div>
         </div>
       </div>
+      {/* Edit Property Modal */}
+      <AnimatePresence>
+        {showEditModal && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-6">
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-on-surface/40 backdrop-blur-sm" onClick={() => setShowEditModal(false)} />
+            <motion.div initial={{ opacity: 0, scale: 0.95, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95 }} className="relative w-full max-w-2xl bg-white rounded-3xl shadow-2xl overflow-hidden p-8 space-y-8">
+              <header>
+                <h3 className="text-2xl font-black text-on-surface">Edit Property Details</h3>
+                <p className="text-sm font-medium text-outline mt-1">Refine listing information for the elite market.</p>
+              </header>
+              <div className="grid grid-cols-2 gap-6">
+                <div className="col-span-2 space-y-2">
+                  <label className="text-[10px] font-black uppercase tracking-widest text-outline">Property Title</label>
+                  <input value={name} onChange={e => setName(e.target.value)} className="w-full px-5 py-4 bg-surface-container-low border border-outline-variant rounded-2xl outline-none font-medium text-sm focus:border-primary transition-all" />
+                </div>
+                <div className="col-span-2 md:col-span-1 space-y-2">
+                  <label className="text-[10px] font-black uppercase tracking-widest text-outline">Listing Price ($)</label>
+                  <input value={price} onChange={e => setPrice(e.target.value)} className="w-full px-5 py-4 bg-surface-container-low border border-outline-variant rounded-2xl outline-none font-medium text-sm focus:border-primary transition-all" />
+                </div>
+                <div className="col-span-2 md:col-span-1 space-y-2">
+                  <label className="text-[10px] font-black uppercase tracking-widest text-outline">Square Footage</label>
+                  <input value={sqft} onChange={e => setSqft(e.target.value)} className="w-full px-5 py-4 bg-surface-container-low border border-outline-variant rounded-2xl outline-none font-medium text-sm focus:border-primary transition-all" />
+                </div>
+                <div className="col-span-2 space-y-2">
+                  <label className="text-[10px] font-black uppercase tracking-widest text-outline">Description</label>
+                  <textarea value={description} onChange={e => setDescription(e.target.value)} rows={4} className="w-full px-5 py-4 bg-surface-container-low border border-outline-variant rounded-2xl outline-none font-medium text-sm focus:border-primary transition-all resize-none" />
+                </div>
+              </div>
+              <div className="flex gap-4 pt-4">
+                <button onClick={() => setShowEditModal(false)} className="flex-1 py-4 rounded-2xl font-black text-xs uppercase tracking-widest text-outline hover:text-on-surface transition-all">Cancel</button>
+                <button onClick={handleUpdate} className="flex-1 py-4 bg-primary text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl shadow-primary/20 hover:scale-[1.02] active:scale-95 transition-all">Save Changes</button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </motion.div>
   );
 };

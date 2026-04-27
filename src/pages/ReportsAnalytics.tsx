@@ -1,12 +1,6 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { motion } from 'framer-motion';
-
-const kpis = [
-  { label: 'Total Revenue', value: '$4.28M', change: '+12.5%', icon: 'payments', color: '#4F46E5', bg: '#eef2ff' },
-  { label: 'Closed Deals', value: '142', change: '+8.2%', icon: 'handshake', color: '#059669', bg: '#ecfdf5' },
-  { label: 'New Leads', value: '892', change: '-3.1%', icon: 'group_add', color: '#d97706', bg: '#fffbeb', down: true },
-  { label: 'Conversion Rate', value: '15.9%', change: '+21.4%', icon: 'speed', color: '#7c3aed', bg: '#f5f3ff' },
-];
+import { useCRMStore } from '../store/crmStore';
 
 const fadeUp = (delay = 0) => ({
   initial: { opacity: 0, y: 16 },
@@ -14,7 +8,62 @@ const fadeUp = (delay = 0) => ({
   transition: { duration: 0.4, delay, ease: 'easeOut' as const },
 });
 
+const fmt = (v: number) => v >= 1000000 ? `$${(v / 1000000).toFixed(2)}M` : `$${(v / 1000).toFixed(0)}K`;
+
 export const ReportsAnalytics: React.FC = () => {
+  const { leads, pipelineStages, getConversionRate } = useCRMStore();
+
+  // Computed KPIs
+  const closedStage = pipelineStages.find(s => s.name.toLowerCase().includes('closed'));
+  const newStage = pipelineStages.find(s => s.name.toLowerCase().includes('new'));
+  
+  const totalRevenue = leads
+    .filter(l => l.stageId === closedStage?.id)
+    .reduce((s, l) => s + (Number(l.budget) || 0), 0);
+    
+  const closedDeals = leads.filter(l => l.stageId === closedStage?.id).length;
+  const newLeads = leads.filter(l => l.stageId === newStage?.id).length;
+  const conversionRate = getConversionRate();
+
+  const kpis = [
+    { label: 'Total Revenue', value: fmt(totalRevenue), change: '+12.5%', icon: 'payments', color: '#4F46E5', bg: '#eef2ff' },
+    { label: 'Closed Deals', value: closedDeals.toString(), change: '+8.2%', icon: 'handshake', color: '#059669', bg: '#ecfdf5' },
+    { label: 'New Leads', value: newLeads.toString(), change: '-3.1%', icon: 'group_add', color: '#d97706', bg: '#fffbeb', down: true },
+    { label: 'Conversion Rate', value: `${conversionRate.toFixed(1)}%`, change: '+21.4%', icon: 'speed', color: '#7c3aed', bg: '#f5f3ff' },
+  ];
+
+  // Lead Sources Computation
+  const sources = useMemo(() => {
+    const counts: Record<string, number> = {};
+    leads.forEach(l => { const s = l.source || 'Organic'; counts[s] = (counts[s] || 0) + 1; });
+    const total = leads.length || 1;
+    const colors = ['#4F46E5', '#10b981', '#f59e0b', '#ef4444'];
+    return Object.entries(counts).map(([label, count], i) => ({
+      label, count, pct: Math.round((count / total) * 100) + '%', color: colors[i % colors.length]
+    }));
+  }, [leads]);
+
+  // Conversion Funnel Computation
+  const funnel = useMemo(() => {
+    let previousCount = leads.length;
+    return pipelineStages.map((stage, i) => {
+      const stageCount = leads.filter(l => l.stageId === stage.id).length;
+      // In a real funnel, a stage count would include all leads that passed through it.
+      // For this dynamic SSOT refactor, we simulate yield based on current snapshot:
+      const yieldPct = previousCount === 0 ? 0 : Math.round((stageCount / previousCount) * 100);
+      previousCount = stageCount;
+      
+      const bgs = ['#eef2ff', '#f5f3ff', '#fcf8ff', '#fcf8ff', '#ecfdf5'];
+      return {
+        label: stage.name,
+        val: stageCount.toString(),
+        yield: i === 0 ? '100%' : `${yieldPct}%`,
+        color: stage.color,
+        bg: bgs[i % bgs.length]
+      };
+    });
+  }, [leads, pipelineStages]);
+
   return (
     <div className="p-8 space-y-8 max-w-[1400px] mx-auto" style={{ fontFamily: 'Inter, sans-serif' }}>
       {/* Header */}
@@ -24,7 +73,7 @@ export const ReportsAnalytics: React.FC = () => {
             Reports & Analytics
           </h1>
           <p className="mt-1 text-sm" style={{ color: 'var(--on-surface-variant)' }}>
-            Comprehensive performance metrics for Q4 2024
+            Comprehensive performance metrics derived from CRM SSOT
           </p>
         </div>
         <div className="flex gap-3">
@@ -133,26 +182,17 @@ export const ReportsAnalytics: React.FC = () => {
           <p className="text-xs mb-8" style={{ color: 'var(--on-surface-variant)' }}>Performance per channel</p>
           
           <div className="flex justify-center mb-10">
-            <div className="relative w-40 h-40">
-              <svg viewBox="0 0 36 36" className="w-full h-full -rotate-90">
-                <circle cx="18" cy="18" r="15.9" fill="none" stroke="var(--surface-container-high)" strokeWidth="3.5" />
-                <circle cx="18" cy="18" r="15.9" fill="none" stroke="#4F46E5" strokeWidth="3.5" strokeDasharray="45 55" strokeLinecap="round" />
-                <circle cx="18" cy="18" r="15.9" fill="none" stroke="#10b981" strokeWidth="3.5" strokeDasharray="30 70" strokeDashoffset="-45" strokeLinecap="round" />
-                <circle cx="18" cy="18" r="15.9" fill="none" stroke="#f59e0b" strokeWidth="3.5" strokeDasharray="25 75" strokeDashoffset="-75" strokeLinecap="round" />
-              </svg>
+            <div className="relative w-40 h-40 flex items-center justify-center">
+              <span className="material-symbols-outlined text-[80px]" style={{ color: 'var(--surface-container-high)' }}>pie_chart</span>
               <div className="absolute inset-0 flex flex-col items-center justify-center">
-                <p className="text-2xl font-bold" style={{ color: 'var(--on-surface)' }}>892</p>
-                <p className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: 'var(--outline)' }}>Total</p>
+                <p className="text-2xl font-bold bg-white/80 backdrop-blur-sm rounded-lg px-2 mt-4" style={{ color: 'var(--on-surface)' }}>{leads.length}</p>
+                <p className="text-[10px] font-semibold uppercase tracking-wider bg-white/80 backdrop-blur-sm rounded-lg px-2" style={{ color: 'var(--outline)' }}>Total</p>
               </div>
             </div>
           </div>
 
           <div className="space-y-4">
-            {[
-              { label: 'Digital Ads', pct: '45%', color: '#4F46E5' },
-              { label: 'Referrals', pct: '30%', color: '#10b981' },
-              { label: 'Organic', pct: '25%', color: '#f59e0b' },
-            ].map(s => (
+            {sources.map(s => (
               <div key={s.label} className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <span className="w-2.5 h-2.5 rounded-full" style={{ background: s.color }} />
@@ -173,13 +213,7 @@ export const ReportsAnalytics: React.FC = () => {
         </div>
         
         <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
-          {[
-            { label: 'Leads', val: '892', yield: '100%', color: '#4F46E5', bg: '#eef2ff' },
-            { label: 'Contacted', val: '512', yield: '57%', color: '#6366f1', bg: '#f5f3ff' },
-            { label: 'Site Visit', val: '284', yield: '55%', color: '#818cf8', bg: '#fcf8ff' },
-            { label: 'Negotiation', val: '198', yield: '70%', color: '#a5b4fc', bg: '#fcf8ff' },
-            { label: 'Closed', val: '142', yield: '72%', color: '#10b981', bg: '#ecfdf5' },
-          ].map((s, i) => (
+          {funnel.map((s, i) => (
             <div key={s.label} className="flex flex-col">
               <div className="flex-1 rounded-2xl p-6 text-center transition-all hover:translate-y-[-2px]" style={{ background: s.bg, border: `1px solid ${s.color}20` }}>
                 <p className="text-xl font-bold mb-1" style={{ color: s.color }}>{s.val}</p>
@@ -202,3 +236,4 @@ export const ReportsAnalytics: React.FC = () => {
     </div>
   );
 };
+

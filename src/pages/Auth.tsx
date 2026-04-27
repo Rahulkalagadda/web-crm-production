@@ -1,19 +1,40 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
+import { useAuthStore } from '../store/authStore';
+import { authService } from '../services/auth.service';
 
 export const Auth: React.FC = () => {
   const [isLogin, setIsLogin] = useState(true);
   const [authMethod, setAuthMethod] = useState<'email' | 'phone'>('email');
   const [success, setSuccess] = useState(false);
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  
   const navigate = useNavigate();
+  const setAuth = useAuthStore((state) => state.setAuth);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setSuccess(true);
-    setTimeout(() => {
-      navigate('/workspace-overview');
-    }, 1500);
+    setLoading(true);
+    setError('');
+    
+    try {
+      const response = await authService.login({ email, password });
+      if (response.success) {
+        setSuccess(true);
+        setAuth(response.data.user, response.data.accessToken, response.data.refreshToken);
+        setTimeout(() => {
+          navigate('/workspace-overview');
+        }, 1000);
+      }
+    } catch (err: any) {
+      setError(err.message || 'Login failed');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -48,12 +69,14 @@ export const Auth: React.FC = () => {
               {/* Login/Signup Toggle */}
               <div className="flex p-1 rounded-2xl mb-10" style={{ background: 'var(--surface-container-low)' }}>
                 <button 
+                  type="button"
                   onClick={() => setIsLogin(true)}
                   className={`flex-1 py-3 text-sm font-bold rounded-xl transition-all ${isLogin ? 'bg-white text-primary shadow-md' : 'text-on-surface-variant hover:text-on-surface'}`}
                 >
                   Sign In
                 </button>
                 <button 
+                  type="button"
                   onClick={() => setIsLogin(false)}
                   className={`flex-1 py-3 text-sm font-bold rounded-xl transition-all ${!isLogin ? 'bg-white text-primary shadow-md' : 'text-on-surface-variant hover:text-on-surface'}`}
                 >
@@ -64,6 +87,7 @@ export const Auth: React.FC = () => {
               {/* Sub Navigation */}
               <div className="flex gap-8 border-b mb-10" style={{ borderColor: 'var(--surface-container)' }}>
                 <button 
+                  type="button"
                   onClick={() => setAuthMethod('email')}
                   className={`pb-4 text-xs font-black uppercase tracking-widest transition-all relative ${authMethod === 'email' ? 'text-primary' : 'text-outline'}`}
                 >
@@ -71,6 +95,7 @@ export const Auth: React.FC = () => {
                   {authMethod === 'email' && <motion.div layoutId="auth-tab" className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary rounded-full" />}
                 </button>
                 <button 
+                  type="button"
                   onClick={() => setAuthMethod('phone')}
                   className={`pb-4 text-xs font-black uppercase tracking-widest transition-all relative ${authMethod === 'phone' ? 'text-primary' : 'text-outline'}`}
                 >
@@ -79,6 +104,13 @@ export const Auth: React.FC = () => {
                 </button>
               </div>
 
+              {error && (
+                <div className="mb-6 p-4 bg-error-container text-error text-xs font-bold rounded-xl flex items-center gap-2">
+                  <span className="material-symbols-outlined text-[18px]">error</span>
+                  {error}
+                </div>
+              )}
+
               <form onSubmit={handleSubmit} className="space-y-8">
                 <div className="space-y-3">
                   <label className="text-[10px] font-black text-outline uppercase tracking-widest">Official Email</label>
@@ -86,6 +118,8 @@ export const Auth: React.FC = () => {
                     <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-outline group-focus-within:text-primary transition-colors">mail</span>
                     <input 
                       type="email" 
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
                       placeholder="alexander@estateflow.com"
                       className="w-full pl-12 pr-4 py-4 bg-surface-container-low border-none rounded-2xl focus:ring-2 focus:ring-primary/20 transition-all text-sm font-medium"
                       required
@@ -102,6 +136,8 @@ export const Auth: React.FC = () => {
                     <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-outline group-focus-within:text-primary transition-colors">lock</span>
                     <input 
                       type="password" 
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
                       placeholder="••••••••"
                       className="w-full pl-12 pr-12 py-4 bg-surface-container-low border-none rounded-2xl focus:ring-2 focus:ring-primary/20 transition-all text-sm font-medium"
                       required
@@ -119,9 +155,10 @@ export const Auth: React.FC = () => {
 
                 <button 
                   type="submit"
-                  className="w-full py-5 bg-primary text-white rounded-2xl font-black text-sm shadow-2xl shadow-primary/30 hover:scale-[1.02] active:scale-95 transition-all"
+                  disabled={loading}
+                  className="w-full py-5 bg-primary text-white rounded-2xl font-black text-sm shadow-2xl shadow-primary/30 hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-50 disabled:scale-100"
                 >
-                  {isLogin ? 'Sign In to Workspace' : 'Initialize Account'}
+                  {loading ? 'Authenticating...' : isLogin ? 'Sign In to Workspace' : 'Initialize Account'}
                 </button>
               </form>
 
@@ -132,11 +169,11 @@ export const Auth: React.FC = () => {
               </div>
 
               <div className="mt-10 grid grid-cols-2 gap-4">
-                <button type="button" onClick={(e) => handleSubmit(e)} className="flex items-center justify-center gap-3 py-4 px-4 bg-surface-container-low rounded-2xl hover:bg-surface-container transition-all text-xs font-black uppercase tracking-wider text-on-surface">
+                <button type="button" onClick={handleSubmit} className="flex items-center justify-center gap-3 py-4 px-4 bg-surface-container-low rounded-2xl hover:bg-surface-container transition-all text-xs font-black uppercase tracking-wider text-on-surface">
                   <img src="https://www.google.com/favicon.ico" className="w-4 h-4 grayscale" alt="Google" />
                   Google
                 </button>
-                <button type="button" onClick={(e) => handleSubmit(e)} className="flex items-center justify-center gap-3 py-4 px-4 bg-surface-container-low rounded-2xl hover:bg-surface-container transition-all text-xs font-black uppercase tracking-wider text-on-surface">
+                <button type="button" onClick={handleSubmit} className="flex items-center justify-center gap-3 py-4 px-4 bg-surface-container-low rounded-2xl hover:bg-surface-container transition-all text-xs font-black uppercase tracking-wider text-on-surface">
                   <span className="material-symbols-outlined text-xl grayscale">apple</span>
                   Apple ID
                 </button>
@@ -152,7 +189,7 @@ export const Auth: React.FC = () => {
               <div className="w-20 h-20 bg-secondary-container rounded-full flex items-center justify-center mb-8 shadow-xl shadow-secondary/10">
                 <span className="material-symbols-outlined text-4xl text-secondary" style={{ fontVariationSettings: "'FILL' 1" }}>check_circle</span>
               </div>
-              <h2 className="text-2xl font-black text-on-surface mb-2 tracking-tight">Authenticating</h2>
+              <h2 className="text-2xl font-black text-on-surface mb-2 tracking-tight">Success</h2>
               <p className="text-on-surface-variant text-sm font-medium">Preparing your secure workspace...</p>
             </motion.div>
           )}
@@ -172,3 +209,4 @@ export const Auth: React.FC = () => {
     </div>
   );
 };
+

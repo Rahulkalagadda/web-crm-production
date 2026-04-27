@@ -1,96 +1,12 @@
-import React from 'react';
+import React, { useMemo, useEffect } from 'react';
 import { motion } from 'framer-motion';
-
-const kpis = [
-  {
-    label: 'Total Leads',
-    value: '2,842',
-    change: '+12.5%',
-    up: true,
-    icon: 'group',
-    color: '#4F46E5',
-    bg: '#eef2ff',
-  },
-  {
-    label: 'Active Pipeline Value',
-    value: '$14.2M',
-    sub: 'Across 42 pending contracts',
-    change: '+8.2%',
-    up: true,
-    icon: 'payments',
-    color: '#059669',
-    bg: '#ecfdf5',
-  },
-  {
-    label: 'Conversion Rate',
-    value: '3.82%',
-    change: '-0.4%',
-    up: false,
-    icon: 'speed',
-    color: '#d97706',
-    bg: '#fffbeb',
-  },
-  {
-    label: 'Total Revenue (YTD)',
-    value: '$2.48M',
-    sub: 'Target: $3.0M',
-    change: '+21.4%',
-    up: true,
-    icon: 'trending_up',
-    color: '#7c3aed',
-    bg: '#f5f3ff',
-  },
-];
-
-const pipelineData = [
-  { label: 'New', count: 2, value: '$1.2M', pct: 8, color: '#4F46E5' },
-  { label: 'Contacted', count: 1, value: '$2.8M', pct: 18, color: '#f59e0b' },
-  { label: 'Site Visit', count: 3, value: '$5.1M', pct: 33, color: '#10b981' },
-  { label: 'Negotiation', count: 2, value: '$8.4M', pct: 54, color: '#ef4444' },
-  { label: 'Closed', count: 12, value: '$24.5M', pct: 100, color: '#6b7280' },
-];
-
-const activities = [
-  {
-    icon: 'task_alt',
-    iconBg: '#ecfdf5',
-    iconColor: '#059669',
-    title: 'Sarah Jenkins signed the contract for The Heights Penthouse',
-    time: '2 minutes ago',
-    sub: 'Automated Process',
-  },
-  {
-    icon: 'person_add',
-    iconBg: '#eef2ff',
-    iconColor: '#4F46E5',
-    title: 'New Lead: Michael Chen added via Zillow integration',
-    time: '14 minutes ago',
-    sub: 'System',
-  },
-  {
-    icon: 'home_work',
-    iconBg: '#fffbeb',
-    iconColor: '#d97706',
-    title: 'Property Tour scheduled for 1422 Oak Street',
-    time: '1 hour ago',
-    sub: 'Agent: David K.',
-  },
-  {
-    icon: 'comment',
-    iconBg: '#f5f3ff',
-    iconColor: '#7c3aed',
-    title: 'Team Mention: @Alexander please review the buyer\'s offer',
-    time: '3 hours ago',
-    sub: 'Agent: Elena R.',
-  },
-];
-
-const teamMembers = [
-  { name: 'Sarah Jenkins', role: 'Senior Agent', deals: 18, revenue: '$3.2M', img: 'https://lh3.googleusercontent.com/aida-public/AB6AXuB3WYun0K8eTIuSqprZA6C1ipIPe6Ul4bEgp-pcy1_ly8UlZFwUWS7LQOnH_W9ofu9KGOOjvUj_cpvsu2vQjUpT87TlNROc6tJn_foiEIgBIDCTuMSjLUc-6clLlh23GhjRbdPM-ojwoXYWqZmxiQCTNjka3aQw6PTM51feINJi_vnCR317J2TUPqkmzmsqlWM2hRq5HtuexZ8K_M1PmAxyliFOGOuShc0zEBxgP0vqwxD1Wv4G1sPvC2NmEE5qkJssaxdmUvvIjdc', pct: 92 },
-  { name: 'Marcus Mitchell', role: 'Lead Agent', deals: 14, revenue: '$2.1M', img: 'https://lh3.googleusercontent.com/aida-public/AB6AXuCVAiLaKzXG9ZvRoKyegEagwh_2BIgoAC08fkFSBPWILc2r85CNH_2Y0mTgUO1syLgz9yCkz21OQGU4tI4GkMz04lK4phGHi_HgI6PETgtXqQpfNcgJ2IAfEF_c7ihFTX52IwFtZsUIBWOm5u9mkATm5HjiDUIN9iksOY_BuWBcz87IpAhrQC0hSsRohbxfm_Dj1C1nTX-bj7XHiMuLlT5OleV7eX-eLf1KLglxpojr2sZpBNV_2y2yd43LsJsTvGDHGTgeW7zyD4Q', pct: 74 },
-  { name: 'Elena Rodriguez', role: 'Associate', deals: 9, revenue: '$1.4M', img: 'https://lh3.googleusercontent.com/aida-public/AB6AXuCqusbO2OL8Px-N44Gza44L-tF29hnnm8k8L9oAB2lp2jE0eD6ofRHcgYQAxBs9BYgFla8K4vdEl1bIhgy6pmYgX8dywpvgqu-ZGRanRM1a2TZxDJCvWJWeoujv7UAyXiHV2L5IknC_3tW5lSo5_WAxqLqpBCFAE3joMGL4tmLUE-qi7HS9pHyxL1xE6iWIe1IdvtJpDAigGPJqVb7BVhZWAPzrIMI_5S7PgfqGvggeNBNl-Q4zG4r7SSBOR5Yu9goBvVyifAhJ7hA', pct: 58 },
-  { name: 'David Kim', role: 'Associate', deals: 6, revenue: '$890K', img: 'https://lh3.googleusercontent.com/aida-public/AB6AXuDghJrq3sXv5aSfeIHPhNhY49SsYTHnFfv8GggAhQw-Z0FgxiNJBBhTbq6ixi86GMRlORDNAS7tmC8OgLq1A89ijmYp90V5SXvXXzF2ZOqfE-P1sjuKCId3q9Y7I5w7d6ngb04v-W9wjDikvCEQ5DZAw-fWRGsQ392mDgj-WMK33lSo3wPm1hug9MtEM-aUTOKVRus8D6XeO6WC2h5f8qgsyuGCPPeKH69i1LojYMM1YQDtN3hd8F-s7pzkZhLtjPTRLSxIDfDqwOk', pct: 41 },
-];
+import { useCRMStore } from '../store/crmStore';
+import { useUsersStore } from '../store/usersStore';
+import { useTasksStore } from '../store/tasksStore';
+import { leadsService } from '../services/leads.service';
+import { pipelineService } from '../services/pipeline.service';
+import { usersService } from '../services/users.service';
+import { tasksService } from '../services/tasks.service';
 
 const fadeUp = (delay = 0) => ({
   initial: { opacity: 0, y: 16 },
@@ -98,7 +14,138 @@ const fadeUp = (delay = 0) => ({
   transition: { duration: 0.4, delay, ease: 'easeOut' as const },
 });
 
+const fmt = (v: number) => v >= 1000000 ? `$${(v / 1000000).toFixed(2)}M` : `$${(v / 1000).toFixed(0)}K`;
+
 export const WorkspaceOverview: React.FC = () => {
+  const { leads, setLeads, pipelineStages, setPipelineStages, getPipelineValue, getConversionRate } = useCRMStore();
+  const { users, setUsers } = useUsersStore();
+  const { tasks, setTasks } = useTasksStore();
+
+  const [loading, setLoading] = React.useState(true);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      setLoading(true);
+      try {
+        const [leadsRes, stagesRes, usersRes, tasksRes] = await Promise.all([
+          leadsService.getLeads(),
+          pipelineService.getStages(),
+          usersService.getUsers(),
+          tasksService.getTasks()
+        ]);
+        if (leadsRes.success) setLeads(leadsRes.data);
+        if (stagesRes.success) setPipelineStages(stagesRes.data);
+        if (usersRes.success) setUsers(usersRes.data);
+        if (tasksRes.success) setTasks(tasksRes.data);
+      } catch (error) {
+        console.error('Failed to sync workspace data', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchData();
+  }, [setLeads, setPipelineStages, setUsers, setTasks]);
+
+  // Computed KPIs
+  const totalLeads = leads.length;
+  const pipelineValue = getPipelineValue();
+  const conversionRate = getConversionRate();
+  
+  const closedStage = pipelineStages.find(s => s.name.toLowerCase().includes('closed'));
+  const totalRevenue = leads
+    .filter(l => l.stageId === closedStage?.id)
+    .reduce((s, l) => s + (Number(l.budget) || 0), 0);
+    
+  const activeDeals = leads.filter(l => l.stageId !== closedStage?.id).length;
+
+  const kpis = [
+    { label: 'Total Leads', value: totalLeads.toString(), change: '+12.5%', up: true, icon: 'group', color: '#4F46E5', bg: '#eef2ff' },
+    { label: 'Active Pipeline Value', value: fmt(pipelineValue), sub: `Across ${activeDeals} pending contracts`, change: '+8.2%', up: true, icon: 'payments', color: '#059669', bg: '#ecfdf5' },
+    { label: 'Conversion Rate', value: `${conversionRate.toFixed(1)}%`, change: '-0.4%', up: false, icon: 'speed', color: '#d97706', bg: '#fffbeb' },
+    { label: 'Total Revenue (YTD)', value: fmt(totalRevenue), sub: 'Target: $3.0M', change: '+21.4%', up: true, icon: 'trending_up', color: '#7c3aed', bg: '#f5f3ff' },
+  ];
+
+  // Computed Pipeline Data
+  const pipelineData = useMemo(() => {
+    return pipelineStages.map(stage => {
+      const stageLeads = leads.filter(l => l.stageId === stage.id);
+      const val = stageLeads.reduce((sum, l) => sum + (Number(l.budget) || 0), 0);
+      const pct = pipelineValue > 0 ? (val / pipelineValue) * 100 : 0;
+      return { label: stage.name, count: stageLeads.length, value: fmt(val), pct, color: stage.color };
+    });
+  }, [leads, pipelineStages, pipelineValue]);
+
+  // Computed Team Performance
+  const teamPerformance = useMemo(() => {
+    const closedStage = pipelineStages.find(s => s.name.toLowerCase().includes('closed'));
+    return users.map(u => {
+      const userLeads = leads.filter(l => l.assigneeId === u.id);
+      const closed = userLeads.filter(l => l.stageId === closedStage?.id);
+      const rev = closed.reduce((s, l) => s + (Number(l.budget) || 0), 0);
+      return {
+        name: `${u.firstName} ${u.lastName}`,
+        role: u.role,
+        deals: closed.length,
+        revenue: fmt(rev),
+        revValue: rev,
+        img: `https://i.pravatar.cc/100?u=${u.id}`
+      };
+    }).sort((a, b) => b.revValue - a.revValue).slice(0, 4);
+  }, [users, leads, pipelineStages]);
+
+  // Computed Recent Activities (Derived from Tasks and Leads)
+  const recentActivities = useMemo(() => {
+    const acts: any[] = [];
+    // Add recent leads
+    leads.slice(0, 2).forEach(l => {
+      acts.push({
+        icon: 'person_add', iconBg: '#eef2ff', iconColor: '#4F46E5',
+        title: `New Lead: ${l.firstName} ${l.lastName} added`, time: 'Recently', sub: `Source: ${l.source}`
+      });
+    });
+    // Add completed tasks
+    tasks.filter(t => t.isCompleted).slice(0, 2).forEach(t => {
+      acts.push({
+        icon: 'task_alt', iconBg: '#ecfdf5', iconColor: '#059669',
+        title: `Task Completed: ${t.title}`, time: 'Recently', sub: `Assigned to: ${t.userId}`
+      });
+    });
+    return acts;
+  }, [leads, tasks]);
+
+  // Lead Sources Computation
+  const sources = useMemo(() => {
+    const counts: Record<string, number> = {};
+    leads.forEach(l => { const s = l.source || 'Organic'; counts[s] = (counts[s] || 0) + 1; });
+    const total = leads.length || 1;
+    const colors = ['#4F46E5', '#10b981', '#f59e0b', '#ef4444'];
+    return Object.entries(counts).map(([label, count], i) => ({
+      label, count, pct: Math.round((count / total) * 100) + '%', color: colors[i % colors.length]
+    }));
+  }, [leads]);
+
+  if (loading) {
+    return (
+      <div className="flex flex-col items-center justify-center h-[80vh] gap-4">
+        <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+        <p className="text-sm font-bold text-outline animate-pulse uppercase tracking-widest">Aggregating Workspace Intelligence...</p>
+      </div>
+    );
+  }
+
+  if (leads.length === 0 && !loading) {
+     return (
+      <div className="p-8 max-w-[1400px] mx-auto text-center space-y-4">
+        <div className="w-20 h-20 bg-surface-container-low rounded-full flex items-center justify-center mx-auto">
+          <span className="material-symbols-outlined text-[40px] text-outline">query_stats</span>
+        </div>
+        <h2 className="text-2xl font-bold text-on-surface">No Workspace Data Yet</h2>
+        <p className="text-outline max-w-md mx-auto">Start by adding leads or creating pipeline stages to see your performance metrics here.</p>
+        <button onClick={() => window.location.reload()} className="px-6 py-3 bg-primary text-white rounded-xl font-bold">Refresh Workspace</button>
+      </div>
+     );
+  }
+
   return (
     <div className="p-8 space-y-8 max-w-[1400px] mx-auto" style={{ fontFamily: 'Inter, sans-serif' }}>
       {/* Page Header */}
@@ -107,7 +154,7 @@ export const WorkspaceOverview: React.FC = () => {
           Workspace Overview
         </h1>
         <p className="mt-1 text-sm" style={{ color: 'var(--on-surface-variant)' }}>
-          Real-time performance metrics for Q4 2024
+          Real-time performance metrics computed from global store data
         </p>
       </motion.div>
 
@@ -188,26 +235,16 @@ export const WorkspaceOverview: React.FC = () => {
           <p className="text-xs mb-6" style={{ color: 'var(--on-surface-variant)' }}>Channel performance</p>
 
           <div className="flex justify-center mb-6">
-            <div className="relative w-36 h-36">
-              <svg viewBox="0 0 36 36" className="w-full h-full -rotate-90">
-                <circle cx="18" cy="18" r="15.9" fill="none" stroke="var(--surface-container-high)" strokeWidth="3.8" />
-                <circle cx="18" cy="18" r="15.9" fill="none" stroke="#4F46E5" strokeWidth="3.8" strokeDasharray="45 55" strokeLinecap="round" />
-                <circle cx="18" cy="18" r="15.9" fill="none" stroke="#10b981" strokeWidth="3.8" strokeDasharray="30 70" strokeDashoffset="-45" strokeLinecap="round" />
-                <circle cx="18" cy="18" r="15.9" fill="none" stroke="#f59e0b" strokeWidth="3.8" strokeDasharray="25 75" strokeDashoffset="-75" strokeLinecap="round" />
-              </svg>
+            <div className="relative w-36 h-36 flex items-center justify-center">
+               <span className="material-symbols-outlined text-[64px]" style={{ color: 'var(--surface-container-high)' }}>pie_chart</span>
               <div className="absolute inset-0 flex flex-col items-center justify-center">
-                <p className="text-xl font-bold" style={{ color: 'var(--on-surface)' }}>892</p>
-                <p className="text-xs" style={{ color: 'var(--outline)' }}>Total</p>
+                <p className="text-xl font-bold bg-white/80 backdrop-blur-sm rounded-lg px-2" style={{ color: 'var(--on-surface)' }}>{totalLeads}</p>
               </div>
             </div>
           </div>
 
           <div className="space-y-3">
-            {[
-              { label: 'Digital Ads', pct: '45%', color: '#4F46E5' },
-              { label: 'Referrals', pct: '30%', color: '#10b981' },
-              { label: 'Organic', pct: '25%', color: '#f59e0b' },
-            ].map(s => (
+            {sources.map(s => (
               <div key={s.label} className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <span className="w-2.5 h-2.5 rounded-full" style={{ background: s.color }} />
@@ -230,7 +267,7 @@ export const WorkspaceOverview: React.FC = () => {
           <p className="text-xs mb-6" style={{ color: 'var(--on-surface-variant)' }}>Live event feed</p>
 
           <div className="space-y-5">
-            {activities.map((act, i) => (
+            {recentActivities.map((act, i) => (
               <div key={i} className="flex gap-3">
                 <div className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0" style={{ background: act.iconBg }}>
                   <span className="material-symbols-outlined text-[16px]" style={{ color: act.iconColor, fontVariationSettings: "'FILL' 1" }}>
@@ -256,7 +293,7 @@ export const WorkspaceOverview: React.FC = () => {
         <div className="flex items-center justify-between mb-6">
           <div>
             <h3 className="text-base font-semibold" style={{ color: 'var(--on-surface)' }}>Team Performance</h3>
-            <p className="text-xs mt-0.5" style={{ color: 'var(--on-surface-variant)' }}>Q4 2024 rankings</p>
+            <p className="text-xs mt-0.5" style={{ color: 'var(--on-surface-variant)' }}>Derived from closed deals assigned to users</p>
           </div>
           <button
             className="text-sm font-semibold px-4 py-2 rounded-xl transition-all"
@@ -267,7 +304,7 @@ export const WorkspaceOverview: React.FC = () => {
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
-          {teamMembers.map((member, i) => (
+          {teamPerformance.map((member, i) => (
             <motion.div
               key={member.name}
               whileHover={{ y: -2 }}
@@ -294,7 +331,7 @@ export const WorkspaceOverview: React.FC = () => {
               <div className="h-1.5 rounded-full overflow-hidden" style={{ background: 'var(--surface-container-high)' }}>
                 <motion.div
                   initial={{ width: 0 }}
-                  animate={{ width: `${member.pct}%` }}
+                  animate={{ width: `${Math.min(100, (member.revValue / (pipelineValue || 1)) * 100)}%` }}
                   transition={{ duration: 0.8, delay: 0.3 + i * 0.1 }}
                   className="h-full rounded-full"
                   style={{ background: 'var(--primary)' }}
@@ -307,3 +344,4 @@ export const WorkspaceOverview: React.FC = () => {
     </div>
   );
 };
+

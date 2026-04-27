@@ -1,79 +1,184 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
-
-const INITIAL_LEADS = [
-  { id: 1, name: 'Julianne Smith', email: 'julianne.s@company.com', status: 'New Lead', statusCls: 'chip-indigo', agent: 'Sarah J.', agentImg: 'https://i.pravatar.cc/100?img=1', source: 'Zillow Premier', last: '2 min ago', interests: ['Penthouse', 'Modern'] },
-  { id: 2, name: 'Robert Miller', email: 'robert.m@invest.com', status: 'In Contact', statusCls: 'chip-blue', agent: 'Marcus M.', agentImg: 'https://i.pravatar.cc/100?img=2', source: 'Direct Referral', last: '1 hr ago', interests: ['Waterfront'] },
-  { id: 3, name: 'Emily Thompson', email: 'emily.t@web.me', status: 'Site Visit', statusCls: 'chip-emerald', agent: 'Elena R.', agentImg: 'https://i.pravatar.cc/100?img=3', source: 'Website', last: '5 min ago', interests: ['Loft', 'Industrial'] },
-  { id: 4, name: 'Michael Chen', email: 'm.chen@startup.io', status: 'Negotiating', statusCls: 'chip-amber', agent: 'David K.', agentImg: 'https://i.pravatar.cc/100?img=4', source: 'Facebook Ads', last: '45 min ago', interests: ['Mountain View'] },
-  { id: 5, name: 'Diana Voss', email: 'd.voss@capital.com', status: 'New Lead', statusCls: 'chip-indigo', agent: 'Sarah J.', agentImg: 'https://i.pravatar.cc/100?img=5', source: 'Instagram', last: '20 min ago', interests: ['Penthouse'] },
-  { id: 6, name: 'Arthur Winston', email: 'a.winston@global.net', status: 'In Contact', statusCls: 'chip-blue', agent: 'Marcus M.', agentImg: 'https://i.pravatar.cc/100?img=6', source: 'Referral', last: '3 hrs ago', interests: ['Waterfront', 'Mansion'] },
-];
-
-const STATUSES = ['All', 'New Lead', 'In Contact', 'Site Visit', 'Negotiating'];
+import { useCRMStore } from '../store/crmStore';
+import { useUsersStore } from '../store/usersStore';
+import { leadsService } from '../services/leads.service';
+import { usersService } from '../services/users.service';
+import { pipelineService } from '../services/pipeline.service';
 
 export const LeadsManagement: React.FC = () => {
   const navigate = useNavigate();
-  const [leads, setLeads] = useState(INITIAL_LEADS);
-  const [search, setSearch] = useState('');
-  const [status, setStatus] = useState('All');
-  const [selected, setSelected] = useState<number[]>([]);
+  const { leads, setLeads, addLead, pipelineStages, setPipelineStages, filters, setFilters } = useCRMStore();
+  const { users, setUsers } = useUsersStore();
+  
+  const [loading, setLoading] = useState(true);
+  const [selected, setSelected] = useState<string[]>([]);
   const [showAddModal, setShowAddModal] = useState(false);
+  const [assigningId, setAssigningId] = useState<string | null>(null);
 
   // Form state
-  const [newName, setNewName] = useState('');
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
   const [newEmail, setNewEmail] = useState('');
-  const [newBudget, setNewBudget] = useState('$500K - $1M');
-  const [newInterest, setNewInterest] = useState('Residential');
+  const [newPhone, setNewPhone] = useState('');
+  const [newNotes, setNewNotes] = useState('');
+  const [newBudget, setNewBudget] = useState('');
 
-  React.useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    if (params.get('add') === 'true') {
-      setShowAddModal(true);
-      // Clean up URL
-      navigate('/leads-management', { replace: true });
+  useEffect(() => {
+    const fetchData = async () => {
+      setLoading(true);
+      try {
+        const [leadsRes, stagesRes, usersRes] = await Promise.all([
+          leadsService.getLeads(),
+          pipelineService.getStages(),
+          usersService.getUsers()
+        ]);
+        
+        if (leadsRes.success) setLeads(leadsRes.data);
+        if (stagesRes.success) setPipelineStages(stagesRes.data);
+        if (usersRes.success) setUsers(usersRes.data);
+      } catch (error) {
+        console.error('Failed to fetch CRM data', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchData();
+  }, [setLeads, setPipelineStages, setUsers]);
+
+  const handleAssignLead = async (leadId: string, assigneeId: string) => {
+    try {
+      const response = await leadsService.assignLead(leadId, assigneeId);
+      if (response.success) {
+        setLeads(leads.map(l => l.id === leadId ? response.data : l));
+      }
+    } catch (error) {
+      console.error('Failed to assign lead', error);
     }
-  }, [navigate]);
+    setAssigningId(null);
+  };
 
-  const filtered = leads.filter(l =>
-    (status === 'All' || l.status === status) &&
-    (l.name.toLowerCase().includes(search.toLowerCase()) || l.email.toLowerCase().includes(search.toLowerCase()))
-  );
+  const filtered = leads.filter(l => {
+    const stageMatches = filters.status === 'All' || l.stageId === filters.status;
+    const searchLower = filters.search.toLowerCase();
+    const searchMatches = 
+      l.firstName.toLowerCase().includes(searchLower) || 
+      l.lastName.toLowerCase().includes(searchLower) || 
+      l.email?.toLowerCase().includes(searchLower);
+    return stageMatches && searchMatches;
+  });
 
-  const toggleSelect = (id: number) =>
+  const toggleSelect = (id: string) =>
     setSelected(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
 
   const allSelected = filtered.length > 0 && filtered.every(l => selected.includes(l.id));
+
+  const handleCreateLead = async () => {
+    if (!firstName || !lastName || !newEmail) return;
+    
+    try {
+      const response = await leadsService.createLead({
+        firstName,
+        lastName,
+        email: newEmail,
+        phone: newPhone,
+        notes: newNotes,
+        budget: parseFloat(newBudget) || 0,
+        stageId: pipelineStages[0]?.id || '1',
+        source: 'Web Admin',
+      });
+      
+      if (response.success) {
+        addLead(response.data);
+        setFirstName('');
+        setLastName('');
+        setNewEmail('');
+        setNewPhone('');
+        setNewNotes('');
+        setNewBudget('');
+        setShowAddModal(false);
+      }
+    } catch (error) {
+      console.error('Failed to create lead', error);
+    }
+  };
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setLoading(true);
+    try {
+      const response = await leadsService.bulkUpload(file);
+      if (response.success) {
+        // Refresh leads
+        const leadsRes = await leadsService.getLeads();
+        if (leadsRes.success) setLeads(leadsRes.data);
+        alert(`${response.data.count} leads imported successfully!`);
+      } else {
+        alert('Failed to import leads. Please check the file format.');
+      }
+    } catch (error) {
+      console.error('Bulk upload failed', error);
+      alert('An error occurred during bulk upload.');
+    } finally {
+      setLoading(false);
+      e.target.value = ''; // Reset input
+    }
+  };
+
+  const getStageColor = (stageId: string) => {
+    const stage = pipelineStages.find(s => s.id === stageId);
+    return stage?.color || '#CBD5E1';
+  };
+
+  const getStageName = (stageId: string) => {
+    const stage = pipelineStages.find(s => s.id === stageId);
+    return stage?.name || 'Unknown';
+  };
 
   return (
     <motion.div
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.4, ease: [0.2, 0, 0, 1] }}
-      className="p-8 space-y-6"
+      transition={{ duration: 0.4, ease: 'easeOut' as any }}
+      className="p-4 md:p-8 space-y-6"
       style={{ fontFamily: 'Inter, sans-serif' }}
     >
       {/* Header */}
-      <div className="flex items-end justify-between">
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
         <div>
-          <h1 className="text-[30px] font-semibold" style={{ color: 'var(--on-surface)', letterSpacing: '-0.02em' }}>
+          <h1 className="text-2xl md:text-[30px] font-semibold text-on-surface tracking-tight">
             Leads Management
           </h1>
-          <p className="text-sm mt-1" style={{ color: 'var(--on-surface-variant)' }}>
-            {leads.length} active leads · Updated just now
+          <p className="text-xs md:text-sm mt-1 text-outline">
+            {leads.length} active leads · {loading ? 'Refreshing...' : 'Updated just now'}
           </p>
         </div>
-        <div className="flex gap-3">
-          <button
-            className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold transition-all btn-secondary"
+        <div className="flex flex-wrap gap-2 md:gap-3">
+          <input
+            type="file"
+            id="bulk-import"
+            className="hidden"
+            accept=".csv, .xlsx, .xls"
+            onChange={handleFileUpload}
+          />
+          <button 
+            onClick={() => document.getElementById('bulk-import')?.click()}
+            className="flex-1 md:flex-none flex items-center justify-center gap-2 px-4 md:px-5 py-2.5 rounded-xl text-sm font-bold transition-all btn-secondary"
           >
+            <span className="material-symbols-outlined text-[20px]">upload_file</span>
+            <span className="hidden sm:inline">Import</span>
+            <span className="sm:hidden">Import</span>
+          </button>
+          <button className="flex-1 md:flex-none flex items-center justify-center gap-2 px-4 md:px-5 py-2.5 rounded-xl text-sm font-bold transition-all btn-secondary">
             <span className="material-symbols-outlined text-[20px]">filter_list</span>
             Filters
           </button>
           <button
             onClick={() => setShowAddModal(true)}
-            className="flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-bold text-white transition-all bg-primary shadow-xl shadow-primary/20 hover:scale-[1.02] active:scale-95"
+            className="w-full md:w-auto flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl text-sm font-bold text-white transition-all bg-primary shadow-xl shadow-primary/20 hover:scale-[1.02] active:scale-95"
           >
             <span className="material-symbols-outlined text-[20px]">person_add</span>
             Add New Lead
@@ -84,41 +189,49 @@ export const LeadsManagement: React.FC = () => {
       {/* Table Card */}
       <div className="card overflow-hidden">
         {/* Toolbar */}
-        <div className="flex items-center gap-6 p-6 border-b border-outline-variant bg-surface-container-low">
+        <div className="flex flex-col lg:flex-row lg:items-center gap-4 md:gap-6 p-4 md:p-6 border-b border-outline-variant bg-surface-container-low">
           {/* Search */}
-          <div className="relative flex-1 max-w-sm">
+          <div className="relative w-full lg:max-w-sm">
             <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-[20px] text-outline">search</span>
             <input
               type="text"
-              placeholder="Search by name, email, or interests..."
-              value={search}
-              onChange={e => setSearch(e.target.value)}
+              placeholder="Search leads..."
+              value={filters.search}
+              onChange={e => setFilters({ search: e.target.value })}
               className="w-full pl-12 pr-4 py-3 bg-white border border-outline-variant rounded-2xl text-sm font-medium outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all"
             />
           </div>
 
           {/* Status filters */}
-          <div className="flex gap-1 p-1 bg-surface-container-highest rounded-2xl">
-            {STATUSES.map(s => (
+          <div className="flex gap-1 p-1 bg-surface-container-highest rounded-2xl overflow-x-auto no-scrollbar scroll-smooth">
+            <button
+              onClick={() => setFilters({ status: 'All' })}
+              className={`whitespace-nowrap px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
+                filters.status === 'All' ? 'bg-white text-primary shadow-sm' : 'text-outline hover:text-on-surface'
+              }`}
+            >
+              All
+            </button>
+            {pipelineStages.map(s => (
               <button
-                key={s}
-                onClick={() => setStatus(s)}
-                className={`px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${
-                  status === s ? 'bg-white text-primary shadow-sm' : 'text-outline hover:text-on-surface'
+                key={s.id}
+                onClick={() => setFilters({ status: s.id })}
+                className={`whitespace-nowrap px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
+                  filters.status === s.id ? 'bg-white text-primary shadow-sm' : 'text-outline hover:text-on-surface'
                 }`}
               >
-                {s}
+                {s.name}
               </button>
             ))}
           </div>
 
-          <div className="ml-auto flex items-center gap-3">
+          <div className="flex items-center gap-3 lg:ml-auto">
             {selected.length > 0 && (
               <span className="text-[10px] font-black px-3 py-1.5 rounded-lg bg-primary-container text-primary uppercase tracking-widest">
                 {selected.length} selected
               </span>
             )}
-            <button className="w-10 h-10 flex items-center justify-center rounded-xl bg-white border border-outline-variant text-outline hover:text-primary transition-all shadow-sm">
+            <button className="flex-1 lg:flex-none w-10 h-10 flex items-center justify-center rounded-xl bg-white border border-outline-variant text-outline hover:text-primary transition-all shadow-sm">
               <span className="material-symbols-outlined text-[20px]">download</span>
             </button>
           </div>
@@ -126,97 +239,138 @@ export const LeadsManagement: React.FC = () => {
 
         {/* Table */}
         <div className="overflow-x-auto">
-          <table className="w-full border-collapse">
-            <thead>
-              <tr className="bg-surface-container-low/50">
-                <th className="pl-6 pr-4 py-4 w-12 text-left">
-                  <input
-                    type="checkbox"
-                    checked={allSelected}
-                    onChange={() => allSelected ? setSelected([]) : setSelected(filtered.map(l => l.id))}
-                    className="w-4 h-4 rounded border-outline-variant text-primary focus:ring-primary cursor-pointer"
-                  />
-                </th>
-                {['Lead', 'Status', 'Assigned Agent', 'Source', 'Last Contact', 'Interests', ''].map(h => (
-                  <th key={h} className="px-4 py-4 text-left text-[10px] font-black uppercase tracking-widest text-outline">
-                    {h}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-outline-variant">
-              {filtered.map(lead => (
-                <tr
-                  key={lead.id}
-                  onClick={() => navigate('/lead-details')}
-                  className="group hover:bg-primary-container/20 transition-colors cursor-pointer"
-                >
-                  <td className="pl-6 pr-4 py-4" onClick={e => e.stopPropagation()}>
+          {loading ? (
+             <div className="p-20 text-center text-outline font-bold">Initialising Lead Engine...</div>
+          ) : (
+            <table className="w-full border-collapse">
+              <thead>
+                <tr className="bg-surface-container-low/50">
+                  <th className="pl-6 pr-4 py-4 w-12 text-left">
                     <input
                       type="checkbox"
-                      checked={selected.includes(lead.id)}
-                      onChange={() => toggleSelect(lead.id)}
+                      checked={allSelected}
+                      onChange={() => allSelected ? setSelected([]) : setSelected(filtered.map(l => l.id))}
                       className="w-4 h-4 rounded border-outline-variant text-primary focus:ring-primary cursor-pointer"
                     />
-                  </td>
-                  <td className="px-4 py-4">
-                    <div className="flex flex-col">
-                      <span className="text-sm font-bold text-on-surface group-hover:text-primary transition-colors">{lead.name}</span>
-                      <span className="text-xs text-outline font-medium">{lead.email}</span>
-                    </div>
-                  </td>
-                  <td className="px-4 py-4">
-                    <span className={`chip ${lead.statusCls}`}>{lead.status}</span>
-                  </td>
-                  <td className="px-4 py-4">
-                    <div className="flex items-center gap-2.5">
-                      <img className="w-8 h-8 rounded-full object-cover ring-2 ring-white shadow-sm" src={lead.agentImg} alt={lead.agent} />
-                      <span className="text-xs font-bold text-on-surface-variant">{lead.agent}</span>
-                    </div>
-                  </td>
-                  <td className="px-4 py-4">
-                    <span className="text-xs font-bold text-on-surface-variant">{lead.source}</span>
-                  </td>
-                  <td className="px-4 py-4">
-                    <span className="text-xs font-medium text-outline">{lead.last}</span>
-                  </td>
-                  <td className="px-4 py-4">
-                    <div className="flex flex-wrap gap-1.5">
-                      {lead.interests.map(tag => (
-                        <span key={tag} className="text-[10px] px-2 py-0.5 rounded-lg font-black uppercase tracking-tighter bg-surface-container text-outline">
-                          {tag}
-                        </span>
-                      ))}
-                    </div>
-                  </td>
-                  <td className="px-4 py-4 text-right">
-                    <button className="w-9 h-9 flex items-center justify-center rounded-xl text-outline hover:bg-white hover:text-primary hover:shadow-md transition-all">
-                      <span className="material-symbols-outlined text-[20px]">more_horiz</span>
-                    </button>
-                  </td>
+                  </th>
+                  {['Lead', 'Stage', 'Assigned Agent', 'Source', 'Created', 'Notes', ''].map(h => (
+                    <th key={h} className="px-4 py-4 text-left text-[10px] font-black uppercase tracking-widest text-outline">
+                      {h}
+                    </th>
+                  ))}
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="divide-y divide-outline-variant">
+                {filtered.map(lead => (
+                  <tr
+                    key={lead.id}
+                    onClick={() => navigate(`/leads/${lead.id}`)}
+                    className="group hover:bg-primary-container/20 transition-colors cursor-pointer"
+                  >
+                    <td className="pl-6 pr-4 py-4" onClick={e => e.stopPropagation()}>
+                      <input
+                        type="checkbox"
+                        checked={selected.includes(lead.id)}
+                        onChange={() => toggleSelect(lead.id)}
+                        className="w-4 h-4 rounded border-outline-variant text-primary focus:ring-primary cursor-pointer"
+                      />
+                    </td>
+                    <td className="px-4 py-4">
+                      <div className="flex flex-col">
+                        <span className="text-sm font-bold text-on-surface group-hover:text-primary transition-colors">{lead.firstName} {lead.lastName}</span>
+                        <span className="text-xs text-outline font-medium">{lead.email}</span>
+                      </div>
+                    </td>
+                    <td className="px-4 py-4">
+                      <span className="chip" style={{ backgroundColor: getStageColor(lead.stageId) + '20', color: getStageColor(lead.stageId) }}>{getStageName(lead.stageId)}</span>
+                    </td>
+                    <td className="px-4 py-4" onClick={e => e.stopPropagation()}>
+                      <div className="relative group/assign">
+                        <div 
+                          onClick={() => setAssigningId(assigningId === lead.id ? null : lead.id)}
+                          className="flex items-center gap-2.5 hover:bg-surface-container px-2 py-1.5 rounded-lg transition-all cursor-pointer"
+                        >
+                          <img 
+                            className="w-8 h-8 rounded-full object-cover ring-2 ring-white shadow-sm" 
+                            src={`https://i.pravatar.cc/100?u=${lead.assigneeId || 'unassigned'}`} 
+                            alt="Agent" 
+                          />
+                          <div className="flex flex-col">
+                            <span className="text-[11px] font-black text-on-surface uppercase tracking-tight">
+                              {users.find(u => u.id === lead.assigneeId)?.firstName || 'Unassigned'}
+                            </span>
+                            <span className="text-[9px] font-bold text-primary uppercase tracking-widest">Assign</span>
+                          </div>
+                        </div>
+
+                        <AnimatePresence>
+                          {assigningId === lead.id && (
+                            <>
+                              <div className="fixed inset-0 z-40" onClick={() => setAssigningId(null)} />
+                              <motion.div 
+                                initial={{ opacity: 0, scale: 0.95, y: -10 }}
+                                animate={{ opacity: 1, scale: 1, y: 0 }}
+                                exit={{ opacity: 0, scale: 0.95, y: -10 }}
+                                className="absolute left-0 top-full mt-2 w-56 bg-white rounded-2xl shadow-2xl border border-outline-variant z-50 overflow-hidden"
+                              >
+                                <div className="p-2 border-b border-outline-variant bg-surface-container-low">
+                                  <p className="text-[10px] font-black text-outline uppercase tracking-widest px-3 py-1">Select Agent</p>
+                                </div>
+                                <div className="max-h-60 overflow-y-auto p-1">
+                                  {users.map(user => (
+                                    <button
+                                      key={user.id}
+                                      onClick={() => handleAssignLead(lead.id, user.id)}
+                                      className="w-full flex items-center gap-3 px-3 py-2 rounded-xl hover:bg-primary/5 text-left transition-all group/item"
+                                    >
+                                      <img className="w-8 h-8 rounded-lg object-cover" src={`https://i.pravatar.cc/100?u=${user.id}`} alt="" />
+                                      <div>
+                                        <p className="text-xs font-bold text-on-surface group-hover/item:text-primary transition-colors">{user.firstName} {user.lastName}</p>
+                                        <p className="text-[10px] text-outline font-medium">{user.role}</p>
+                                      </div>
+                                    </button>
+                                  ))}
+                                </div>
+                              </motion.div>
+                            </>
+                          )}
+                        </AnimatePresence>
+                      </div>
+                    </td>
+                    <td className="px-4 py-4">
+                      <span className="text-xs font-bold text-on-surface-variant">{lead.source}</span>
+                    </td>
+                    <td className="px-4 py-4">
+                      <span className="text-xs font-medium text-outline">
+                        {new Date(lead.createdAt).toLocaleDateString()}
+                      </span>
+                    </td>
+                    <td className="px-4 py-4">
+                      <p className="text-xs text-outline line-clamp-1 max-w-[200px]">{lead.notes}</p>
+                    </td>
+                    <td className="px-4 py-4 text-right">
+                      <button className="w-9 h-9 flex items-center justify-center rounded-xl text-outline hover:bg-white hover:text-primary hover:shadow-md transition-all">
+                        <span className="material-symbols-outlined text-[20px]">more_horiz</span>
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
         </div>
 
         {/* Pagination */}
-        <div className="flex items-center justify-between px-8 py-6 bg-surface-container-low/30 border-t border-outline-variant">
-          <p className="text-xs font-bold text-outline uppercase tracking-widest">
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 px-6 md:px-8 py-6 bg-surface-container-low/30 border-t border-outline-variant">
+          <p className="text-[10px] font-black text-outline uppercase tracking-widest text-center sm:text-left">
             Showing <span className="text-on-surface">{filtered.length}</span> of <span className="text-on-surface">{leads.length}</span> Elite Leads
           </p>
           <div className="flex items-center gap-2">
-            <button className="w-10 h-10 flex items-center justify-center rounded-xl border border-outline-variant bg-white text-outline hover:text-primary transition-all shadow-sm">
+            <button className="w-9 h-9 md:w-10 md:h-10 flex items-center justify-center rounded-xl border border-outline-variant bg-white text-outline hover:text-primary transition-all shadow-sm">
               <span className="material-symbols-outlined text-[20px]">chevron_left</span>
             </button>
-            {[1, 2, 3].map(p => (
-              <button key={p} className={`w-10 h-10 flex items-center justify-center rounded-xl text-xs font-black transition-all ${
-                p === 1 ? 'bg-primary text-white shadow-lg shadow-primary/20' : 'bg-white border border-outline-variant text-outline hover:text-primary hover:border-primary shadow-sm'
-              }`}>
-                {p}
-              </button>
-            ))}
-            <button className="w-10 h-10 flex items-center justify-center rounded-xl border border-outline-variant bg-white text-outline hover:text-primary transition-all shadow-sm">
+            <button className="w-9 h-9 md:w-10 md:h-10 flex items-center justify-center rounded-xl text-xs font-black bg-primary text-white shadow-lg shadow-primary/20">1</button>
+            <button className="w-9 h-9 md:w-10 md:h-10 flex items-center justify-center rounded-xl border border-outline-variant bg-white text-outline hover:text-primary transition-all shadow-sm">
               <span className="material-symbols-outlined text-[20px]">chevron_right</span>
             </button>
           </div>
@@ -248,56 +402,34 @@ export const LeadsManagement: React.FC = () => {
 
                 <div className="grid grid-cols-2 gap-6">
                   <div className="col-span-2 md:col-span-1 space-y-2">
-                    <label className="text-[10px] font-black uppercase tracking-widest text-outline">Full Name</label>
-                    <input value={newName} onChange={e => setNewName(e.target.value)} className="w-full px-5 py-4 bg-surface-container-low border border-outline-variant rounded-2xl outline-none font-medium text-sm focus:border-primary transition-all" placeholder="e.g. Julianne Smith" />
+                    <label className="text-[10px] font-black uppercase tracking-widest text-outline">First Name</label>
+                    <input value={firstName} onChange={e => setFirstName(e.target.value)} className="w-full px-5 py-4 bg-surface-container-low border border-outline-variant rounded-2xl outline-none font-medium text-sm focus:border-primary transition-all" placeholder="e.g. Julianne" />
+                  </div>
+                  <div className="col-span-2 md:col-span-1 space-y-2">
+                    <label className="text-[10px] font-black uppercase tracking-widest text-outline">Last Name</label>
+                    <input value={lastName} onChange={e => setLastName(e.target.value)} className="w-full px-5 py-4 bg-surface-container-low border border-outline-variant rounded-2xl outline-none font-medium text-sm focus:border-primary transition-all" placeholder="e.g. Smith" />
                   </div>
                   <div className="col-span-2 md:col-span-1 space-y-2">
                     <label className="text-[10px] font-black uppercase tracking-widest text-outline">Email Address</label>
                     <input value={newEmail} onChange={e => setNewEmail(e.target.value)} className="w-full px-5 py-4 bg-surface-container-low border border-outline-variant rounded-2xl outline-none font-medium text-sm focus:border-primary transition-all" placeholder="name@company.com" />
                   </div>
                   <div className="col-span-2 md:col-span-1 space-y-2">
-                    <label className="text-[10px] font-black uppercase tracking-widest text-outline">Budget Range</label>
-                    <select value={newBudget} onChange={e => setNewBudget(e.target.value)} className="w-full px-5 py-4 bg-surface-container-low border border-outline-variant rounded-2xl outline-none font-medium text-sm focus:border-primary transition-all appearance-none">
-                      <option>$500K - $1M</option>
-                      <option>$1M - $5M</option>
-                      <option>$5M - $20M</option>
-                      <option>$20M+</option>
-                    </select>
+                    <label className="text-[10px] font-black uppercase tracking-widest text-outline">Phone Number</label>
+                    <input value={newPhone} onChange={e => setNewPhone(e.target.value)} className="w-full px-5 py-4 bg-surface-container-low border border-outline-variant rounded-2xl outline-none font-medium text-sm focus:border-primary transition-all" placeholder="+1 (555) 000-0000" />
                   </div>
                   <div className="col-span-2 md:col-span-1 space-y-2">
-                    <label className="text-[10px] font-black uppercase tracking-widest text-outline">Interest Type</label>
-                    <select value={newInterest} onChange={e => setNewInterest(e.target.value)} className="w-full px-5 py-4 bg-surface-container-low border border-outline-variant rounded-2xl outline-none font-medium text-sm focus:border-primary transition-all appearance-none">
-                      <option>Residential</option>
-                      <option>Commercial</option>
-                      <option>Investment</option>
-                      <option>Land</option>
-                    </select>
+                    <label className="text-[10px] font-black uppercase tracking-widest text-outline">Initial Notes</label>
+                    <input value={newNotes} onChange={e => setNewNotes(e.target.value)} className="w-full px-5 py-4 bg-surface-container-low border border-outline-variant rounded-2xl outline-none font-medium text-sm focus:border-primary transition-all" placeholder="e.g. Interested in Penthouse" />
+                  </div>
+                  <div className="col-span-2 md:col-span-1 space-y-2">
+                    <label className="text-[10px] font-black uppercase tracking-widest text-outline">Budget ($)</label>
+                    <input type="number" value={newBudget} onChange={e => setNewBudget(e.target.value)} className="w-full px-5 py-4 bg-surface-container-low border border-outline-variant rounded-2xl outline-none font-medium text-sm focus:border-primary transition-all" placeholder="e.g. 500000" />
                   </div>
                 </div>
 
                 <div className="flex gap-4 pt-4">
                   <button onClick={() => setShowAddModal(false)} className="flex-1 py-4 rounded-2xl font-black text-xs uppercase tracking-widest text-outline hover:text-on-surface transition-all">Cancel</button>
-                  <button onClick={() => {
-                    if (!newName || !newEmail) return;
-                    const newLead = {
-                      id: leads.length + 1,
-                      name: newName,
-                      email: newEmail,
-                      status: 'New Lead',
-                      statusCls: 'chip-indigo',
-                      agent: 'Sarah J.',
-                      agentImg: 'https://i.pravatar.cc/100?img=1',
-                      source: 'Manual Entry',
-                      last: 'Just now',
-                      interests: [newInterest]
-                    };
-                    setLeads([newLead, ...leads]);
-                    setNewName('');
-                    setNewEmail('');
-                    setNewBudget('$500K - $1M');
-                    setNewInterest('Residential');
-                    setShowAddModal(false);
-                  }} className="flex-1 py-4 bg-primary text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl shadow-primary/20 hover:scale-[1.02] active:scale-95 transition-all">Create Lead</button>
+                  <button onClick={handleCreateLead} className="flex-1 py-4 bg-primary text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl shadow-primary/20 hover:scale-[1.02] active:scale-95 transition-all">Create Lead</button>
                 </div>
               </div>
             </motion.div>
@@ -307,3 +439,4 @@ export const LeadsManagement: React.FC = () => {
     </motion.div>
   );
 };
+

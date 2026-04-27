@@ -1,19 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
-
-const INITIAL_PROPERTIES = [
-  { id: 1, name: 'Sky Tower Penthouse', location: 'Downtown Los Angeles, CA', price: '$4,250,000', status: 'Available', statusCls: 'chip-emerald', type: 'Penthouse', sqft: '4,500 sqft', img: 'https://images.unsplash.com/photo-1512917774080-9991f1c4c750?auto=format&fit=crop&w=800&q=80' },
-  { id: 2, name: 'Oceanfront Villa', location: 'Malibu, CA', price: '$12,800,000', status: 'Pending', statusCls: 'chip-amber', type: 'Villa', sqft: '8,200 sqft', img: 'https://images.unsplash.com/photo-1613490493576-7fde63acd811?auto=format&fit=crop&w=800&q=80' },
-  { id: 3, name: 'Modern Canyon Retreat', location: 'Hollywood Hills, CA', price: '$2,450,000', status: 'Available', statusCls: 'chip-emerald', type: 'Single Family', sqft: '3,100 sqft', img: 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=800&q=80' },
-  { id: 4, name: 'Industrial Loft', location: 'Arts District, LA', price: '$1,150,000', status: 'Sold', statusCls: 'chip-red', type: 'Loft', sqft: '1,800 sqft', img: 'https://images.unsplash.com/photo-1536376074432-ad7374f6122f?auto=format&fit=crop&w=800&q=80' },
-  { id: 5, name: 'The Glass House', location: 'Beverly Hills, CA', price: '$8,900,000', status: 'Available', statusCls: 'chip-emerald', type: 'Mansion', sqft: '10,500 sqft', img: 'https://images.unsplash.com/photo-1600607687920-4e2a09cf159d?auto=format&fit=crop&w=800&q=80' },
-  { id: 6, name: 'Silver Lake Modern', location: 'Silver Lake, CA', price: '$1,850,000', status: 'Available', statusCls: 'chip-emerald', type: 'Single Family', sqft: '2,400 sqft', img: 'https://images.unsplash.com/photo-1600566753190-17f0bb2a6c3e?auto=format&fit=crop&w=800&q=80' },
-];
+import { propertiesService, type Property } from '../services/properties.service';
 
 export const Properties: React.FC = () => {
   const navigate = useNavigate();
-  const [propertyList, setPropertyList] = useState(INITIAL_PROPERTIES);
+  const [propertyList, setPropertyList] = useState<Property[]>([]);
+  const [loading, setLoading] = useState(true);
   const [showAddModal, setShowAddModal] = useState(false);
   const [search, setSearch] = useState('');
 
@@ -22,6 +15,22 @@ export const Properties: React.FC = () => {
   const [price, setPrice] = useState('');
   const [sqft, setSqft] = useState('');
   const [address, setAddress] = useState('');
+  const [type, setType] = useState('Single Family');
+
+  useEffect(() => {
+    const fetchProperties = async () => {
+      setLoading(true);
+      try {
+        const res = await propertiesService.getProperties();
+        if (res.success) setPropertyList(res.data);
+      } catch (error) {
+        console.error('Failed to fetch properties', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchProperties();
+  }, []);
 
   const filtered = propertyList.filter(p => 
     p.name.toLowerCase().includes(search.toLowerCase()) || 
@@ -32,7 +41,7 @@ export const Properties: React.FC = () => {
     <motion.div
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.4, ease: [0.2, 0, 0, 1] }}
+      transition={{ duration: 0.4, ease: 'easeOut' as any }}
       className="p-8 space-y-8"
       style={{ fontFamily: 'Inter, sans-serif' }}
     >
@@ -69,52 +78,64 @@ export const Properties: React.FC = () => {
 
       {/* Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8">
-        {filtered.map((property) => (
-          <motion.div
-            key={property.id}
-            whileHover={{ y: -8 }}
-            onClick={() => navigate('/property-details')}
-            className="card group overflow-hidden cursor-pointer bg-white"
-          >
-            <div className="relative h-64 overflow-hidden">
-              <img className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" src={property.img} alt={property.name} />
-              <div className="absolute top-4 left-4">
-                <span className={`chip ${property.statusCls} shadow-lg backdrop-blur-md`}>{property.status}</span>
-              </div>
-              <div className="absolute top-4 right-4">
-                <button className="w-9 h-9 bg-white/20 backdrop-blur-md text-white rounded-xl flex items-center justify-center hover:bg-white hover:text-red-500 transition-all border border-white/30">
-                  <span className="material-symbols-outlined text-[20px]" style={{ fontVariationSettings: property.id === 1 ? "'FILL' 1" : "'FILL' 0" }}>favorite</span>
-                </button>
-              </div>
-              <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-6">
-                 <button className="w-full py-3 bg-white text-on-surface rounded-xl font-black text-[11px] uppercase tracking-widest shadow-xl">View Full Portfolio</button>
-              </div>
-            </div>
-            <div className="p-6">
-              <div className="flex justify-between items-start mb-2">
-                <h3 className="text-lg font-black text-on-surface group-hover:text-primary transition-colors">{property.name}</h3>
-                <span className="text-sm font-black text-primary">{property.price}</span>
-              </div>
-              <p className="text-xs text-outline font-bold flex items-center gap-1.5 mb-6">
-                <span className="material-symbols-outlined text-sm">location_on</span> {property.location}
-              </p>
-              <div className="grid grid-cols-2 gap-4 pt-6 border-t border-outline-variant">
-                <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-lg bg-surface-container flex items-center justify-center text-outline">
-                    <span className="material-symbols-outlined text-sm">home_work</span>
-                  </div>
-                  <span className="text-[10px] font-black uppercase tracking-widest text-outline">{property.type}</span>
+        {loading ? (
+          <div className="col-span-full p-20 text-center font-bold text-outline">Loading Property Portfolio...</div>
+        ) : filtered.length === 0 ? (
+          <div className="col-span-full p-20 text-center font-bold text-outline">No properties found.</div>
+        ) : (
+          filtered.map((property) => (
+            <motion.div
+              key={property.id}
+              whileHover={{ y: -8 }}
+              onClick={() => navigate(`/properties/${property.id}`)}
+              className="card group overflow-hidden cursor-pointer bg-white"
+            >
+              <div className="relative h-64 overflow-hidden">
+                <img 
+                  className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" 
+                  src={property.images?.[0] || 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=800&q=80'} 
+                  alt={property.name} 
+                />
+                <div className="absolute top-4 left-4">
+                  <span className={`chip ${property.status === 'Sold' ? 'chip-red' : property.status === 'Pending' ? 'chip-amber' : 'chip-emerald'} shadow-lg backdrop-blur-md`}>
+                    {property.status}
+                  </span>
                 </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-lg bg-surface-container flex items-center justify-center text-outline">
-                    <span className="material-symbols-outlined text-sm">square_foot</span>
-                  </div>
-                  <span className="text-[10px] font-black uppercase tracking-widest text-outline">{property.sqft}</span>
+                <div className="absolute top-4 right-4">
+                  <button className="w-9 h-9 bg-white/20 backdrop-blur-md text-white rounded-xl flex items-center justify-center hover:bg-white hover:text-red-500 transition-all border border-white/30">
+                    <span className="material-symbols-outlined text-[20px]">favorite</span>
+                  </button>
+                </div>
+                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-6">
+                   <button className="w-full py-3 bg-white text-on-surface rounded-xl font-black text-[11px] uppercase tracking-widest shadow-xl">View Details</button>
                 </div>
               </div>
-            </div>
-          </motion.div>
-        ))}
+              <div className="p-6">
+                <div className="flex justify-between items-start mb-2">
+                  <h3 className="text-lg font-black text-on-surface group-hover:text-primary transition-colors">{property.name}</h3>
+                  <span className="text-sm font-black text-primary">${Number(property.price).toLocaleString()}</span>
+                </div>
+                <p className="text-xs text-outline font-bold flex items-center gap-1.5 mb-6">
+                  <span className="material-symbols-outlined text-sm">location_on</span> {property.location}
+                </p>
+                <div className="grid grid-cols-2 gap-4 pt-6 border-t border-outline-variant">
+                  <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 rounded-lg bg-surface-container flex items-center justify-center text-outline">
+                      <span className="material-symbols-outlined text-sm">home_work</span>
+                    </div>
+                    <span className="text-[10px] font-black uppercase tracking-widest text-outline">{property.type}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 rounded-lg bg-surface-container flex items-center justify-center text-outline">
+                      <span className="material-symbols-outlined text-sm">square_foot</span>
+                    </div>
+                    <span className="text-[10px] font-black uppercase tracking-widest text-outline">{property.sqft} sqft</span>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          ))
+        )}
       </div>
 
       {/* Add Property Modal */}
@@ -150,7 +171,18 @@ export const Properties: React.FC = () => {
                     <input value={price} onChange={e => setPrice(e.target.value)} className="w-full px-5 py-4 bg-surface-container-low border border-outline-variant rounded-2xl outline-none font-medium text-sm focus:border-primary transition-all" placeholder="e.g. 1500000" />
                   </div>
                   <div className="col-span-2 md:col-span-1 space-y-2">
-                    <label className="text-[10px] font-black uppercase tracking-widest text-outline">Square Footage</label>
+                    <label className="text-[10px] font-black uppercase tracking-widest text-outline">Property Type</label>
+                    <select value={type} onChange={e => setType(e.target.value)} className="w-full px-5 py-4 bg-surface-container-low border border-outline-variant rounded-2xl outline-none font-medium text-sm focus:border-primary transition-all">
+                      <option>Single Family</option>
+                      <option>Villa</option>
+                      <option>Penthouse</option>
+                      <option>Mansion</option>
+                      <option>Apartment</option>
+                      <option>Loft</option>
+                    </select>
+                  </div>
+                  <div className="col-span-2 md:col-span-1 space-y-2">
+                    <label className="text-[10px] font-black uppercase tracking-widest text-outline">Square Footage (sqft)</label>
                     <input value={sqft} onChange={e => setSqft(e.target.value)} className="w-full px-5 py-4 bg-surface-container-low border border-outline-variant rounded-2xl outline-none font-medium text-sm focus:border-primary transition-all" placeholder="e.g. 5000" />
                   </div>
                   <div className="col-span-2 space-y-2">
@@ -161,25 +193,28 @@ export const Properties: React.FC = () => {
 
                 <div className="flex gap-4 pt-4">
                   <button onClick={() => setShowAddModal(false)} className="flex-1 py-4 rounded-2xl font-black text-xs uppercase tracking-widest text-outline hover:text-on-surface transition-all">Cancel</button>
-                  <button onClick={() => {
+                  <button onClick={async () => {
                     if (!title || !price) return;
-                    const newProp = {
-                      id: propertyList.length + 1,
-                      name: title,
-                      location: address,
-                      price: `$${Number(price).toLocaleString()}`,
-                      status: 'Available',
-                      statusCls: 'chip-emerald',
-                      type: 'Single Family',
-                      sqft: `${sqft} sqft`,
-                      img: 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=800&q=80'
-                    };
-                    setPropertyList([newProp, ...propertyList]);
-                    setTitle('');
-                    setPrice('');
-                    setSqft('');
-                    setAddress('');
-                    setShowAddModal(false);
+                    try {
+                      const res = await propertiesService.createProperty({
+                        name: title,
+                        location: address,
+                        price: parseFloat(price),
+                        sqft: parseInt(sqft),
+                        type,
+                        status: 'Available',
+                      });
+                      if (res.success) {
+                        setPropertyList([res.data, ...propertyList]);
+                        setTitle('');
+                        setPrice('');
+                        setSqft('');
+                        setAddress('');
+                        setShowAddModal(false);
+                      }
+                    } catch (error) {
+                      console.error('Failed to create property', error);
+                    }
                   }} className="flex-1 py-4 bg-primary text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl shadow-primary/20 hover:scale-[1.02] active:scale-95 transition-all">List Property</button>
                 </div>
               </div>

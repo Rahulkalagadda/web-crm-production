@@ -1,34 +1,85 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-
-const INITIAL_EMPLOYEES = [
-  { id: 1, name: 'Alexander Wright', role: 'Principal Owner', email: 'alex@estateflow.com', status: 'Active', statusCls: 'chip-emerald', type: 'Admin', img: 'https://i.pravatar.cc/100?img=12', deals: 45, performance: '98%' },
-  { id: 2, name: 'Sarah Jenkins', role: 'Luxury Specialist', email: 'sarah.j@estateflow.com', status: 'Active', statusCls: 'chip-emerald', type: 'Agent', img: 'https://i.pravatar.cc/100?img=44', deals: 28, performance: '94%' },
-  { id: 3, name: 'Marcus Thorne', role: 'Senior Broker', email: 'marcus.t@estateflow.com', status: 'Active', statusCls: 'chip-emerald', type: 'Agent', img: 'https://i.pravatar.cc/100?img=33', deals: 32, performance: '91%' },
-  { id: 4, name: 'Elena Ross', role: 'Operations Manager', email: 'elena.r@estateflow.com', status: 'On Leave', statusCls: 'chip-amber', type: 'Manager', img: 'https://i.pravatar.cc/100?img=48', deals: 0, performance: 'N/A' },
-  { id: 5, name: 'David Kim', role: 'Junior Associate', email: 'david.k@estateflow.com', status: 'Active', statusCls: 'chip-emerald', type: 'Agent', img: 'https://i.pravatar.cc/100?img=51', deals: 12, performance: '88%' },
-];
+import { useUsersStore } from '../store/usersStore';
+import { usersService } from '../services/users.service';
+import { toast } from 'react-hot-toast';
 
 export const EmployeeManagement: React.FC = () => {
-  const [employees, setEmployees] = useState(INITIAL_EMPLOYEES);
+  const { users, setUsers, addUser } = useUsersStore();
   const [search, setSearch] = useState('');
   const [showInviteModal, setShowInviteModal] = useState(false);
+  const [loading, setLoading] = useState(false);
 
   // Form State
   const [email, setEmail] = useState('');
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
   const [role, setRole] = useState('Luxury Specialist');
   const [access, setAccess] = useState('Agent');
 
-  const filtered = employees.filter(e => 
-    e.name.toLowerCase().includes(search.toLowerCase()) || 
+  useEffect(() => {
+    const fetchUsers = async () => {
+      setLoading(true);
+      try {
+        const response = await usersService.getUsers();
+        if (response.success) {
+          setUsers(response.data);
+        }
+      } catch (error) {
+        console.error('Failed to fetch users', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchUsers();
+  }, [setUsers]);
+
+  const filtered = users.filter(e => 
+    `${e.firstName} ${e.lastName}`.toLowerCase().includes(search.toLowerCase()) || 
     e.role.toLowerCase().includes(search.toLowerCase())
   );
+
+  const [inviteResult, setInviteResult] = useState<{ email: string; link: string } | null>(null);
+
+  const handleInvite = async () => {
+    if (!email || !firstName || !lastName) return;
+    setLoading(true);
+
+    // Map Access Level to System Role
+    const systemRole = 
+      access === 'Admin' ? 'OWNER' : 
+      access === 'Manager' ? 'MANAGER' : 
+      'EMPLOYEE';
+
+    try {
+      const response = await usersService.inviteUser({
+        email,
+        firstName,
+        lastName,
+        role: systemRole, // System role (OWNER, MANAGER, EMPLOYEE)
+        title: role,      // Job title (Luxury Specialist, etc.)
+      });
+      if (response.success) {
+        addUser(response.data);
+        setInviteResult({ email: response.data.email, link: response.data.inviteLink });
+        setEmail('');
+        setFirstName('');
+        setLastName('');
+        toast.success('Invitation generated successfully!');
+      }
+    } catch (error) {
+      console.error('Failed to invite user', error);
+      toast.error('Failed to generate invitation');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <motion.div
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.4, ease: [0.2, 0, 0, 1] }}
+      transition={{ duration: 0.4, ease: 'easeOut' as any }}
       className="p-8 space-y-8"
       style={{ fontFamily: 'Inter, sans-serif' }}
     >
@@ -66,9 +117,9 @@ export const EmployeeManagement: React.FC = () => {
       {/* Stats Bento */}
       <div className="grid grid-cols-4 gap-6">
         {[
-          { label: 'Total Members', val: '24', icon: 'groups', delta: '+2 this month' },
-          { label: 'Active Agents', val: '18', icon: 'badge', delta: '85% active' },
-          { label: 'Pending Invites', val: '3', icon: 'mail', delta: 'Requires action' },
+          { label: 'Total Members', val: users.length.toString(), icon: 'groups', delta: '+2 this month' },
+          { label: 'Active Agents', val: users.filter(u => u.status === 'ACTIVE').length.toString(), icon: 'badge', delta: '85% active' },
+          { label: 'Pending Invites', val: users.filter(u => u.status === 'INVITED').length.toString(), icon: 'mail', delta: 'Requires action' },
           { label: 'Avg. Performance', val: '92%', icon: 'trending_up', delta: '+4.2% YoY' },
         ].map(stat => (
           <div key={stat.label} className="card p-6 flex items-start justify-between bg-white border border-outline-variant">
@@ -97,40 +148,65 @@ export const EmployeeManagement: React.FC = () => {
             </tr>
           </thead>
           <tbody className="divide-y divide-outline-variant">
-            {filtered.map(emp => (
+            {loading ? (
+              <tr><td colSpan={6} className="px-8 py-12 text-center text-outline">Loading team...</td></tr>
+            ) : filtered.map(emp => (
               <tr key={emp.id} className="group hover:bg-primary-container/10 transition-colors">
                 <td className="px-8 py-5">
                   <div className="flex items-center gap-4">
-                    <img className="w-10 h-10 rounded-2xl object-cover ring-2 ring-white shadow-md" src={emp.img} alt={emp.name} />
+                    <img className="w-10 h-10 rounded-2xl object-cover ring-2 ring-white shadow-md" src={`https://i.pravatar.cc/100?u=${emp.id}`} alt={`${emp.firstName} ${emp.lastName}`} />
                     <div>
-                      <p className="text-sm font-black text-on-surface group-hover:text-primary transition-colors">{emp.name}</p>
+                      <p className="text-sm font-black text-on-surface group-hover:text-primary transition-colors">{emp.firstName} {emp.lastName}</p>
                       <p className="text-xs text-outline font-medium">{emp.email}</p>
                     </div>
                   </div>
                 </td>
                 <td className="px-8 py-5">
                   <div className="flex flex-col gap-1">
-                    <span className="text-xs font-bold text-on-surface-variant">{emp.role}</span>
+                    <span className="text-xs font-bold text-on-surface-variant">{emp.title || 'Team Member'}</span>
                     <span className={`text-[9px] w-fit px-1.5 py-0.5 rounded-md font-black uppercase tracking-widest ${
-                      emp.type === 'Admin' ? 'bg-primary/10 text-primary' : 'bg-surface-container text-outline'
+                      emp.role === 'OWNER' || emp.role === 'MANAGER' ? 'bg-primary/10 text-primary' : 'bg-surface-container text-outline'
                     }`}>
-                      {emp.type}
+                      {emp.role}
                     </span>
                   </div>
                 </td>
                 <td className="px-8 py-5">
-                  <span className={`chip ${emp.statusCls}`}>{emp.status}</span>
+                  <select 
+                    value={emp.status || 'ACTIVE'}
+                    onChange={async (e) => {
+                      const newStatus = e.target.value;
+                      try {
+                        const response = await usersService.updateUserStatus(emp.id, newStatus);
+                        if (response.success) {
+                          setUsers(users.map(u => u.id === emp.id ? { ...u, status: newStatus as any } : u));
+                        }
+                      } catch (error) {
+                        console.error('Failed to update status', error);
+                      }
+                    }}
+                    className={`text-[10px] font-black uppercase tracking-widest px-2.5 py-1 rounded-lg border outline-none transition-all cursor-pointer ${
+                      emp.status === 'ACTIVE' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 
+                      emp.status === 'SUSPENDED' ? 'bg-rose-50 text-rose-600 border-rose-100' :
+                      'bg-amber-50 text-amber-600 border-amber-100'
+                    }`}
+                  >
+                    <option value="ACTIVE">Active</option>
+                    <option value="INACTIVE">Inactive</option>
+                    <option value="SUSPENDED">Suspended</option>
+                    <option value="INVITED" disabled>Invited</option>
+                  </select>
                 </td>
                 <td className="px-8 py-5">
                    <div className="flex items-center gap-3">
-                     <span className="text-sm font-black text-on-surface">{emp.performance}</span>
+                     <span className="text-sm font-black text-on-surface">90%</span>
                      <div className="w-16 h-1.5 bg-surface-container rounded-full overflow-hidden">
-                       <motion.div initial={{ width: 0 }} animate={{ width: emp.performance === 'N/A' ? '0%' : emp.performance }} className="h-full bg-primary" />
+                       <motion.div initial={{ width: 0 }} animate={{ width: '90%' }} className="h-full bg-primary" />
                      </div>
                    </div>
                 </td>
                 <td className="px-8 py-5">
-                  <span className="text-xs font-bold text-on-surface-variant">{emp.deals} Deals</span>
+                  <span className="text-xs font-bold text-on-surface-variant">12 Deals</span>
                 </td>
                 <td className="px-8 py-5 text-right">
                   <button className="w-10 h-10 flex items-center justify-center rounded-xl text-outline hover:bg-white hover:text-primary hover:shadow-md transition-all">
@@ -166,53 +242,90 @@ export const EmployeeManagement: React.FC = () => {
                   <p className="text-sm font-medium text-outline mt-1">Add high-performing talent to your workspace.</p>
                 </header>
 
-                <div className="space-y-6">
-                  <div className="space-y-2">
-                    <label className="text-[10px] font-black uppercase tracking-widest text-outline">Email Address</label>
-                    <input value={email} onChange={e => setEmail(e.target.value)} className="w-full px-5 py-4 bg-surface-container-low border border-outline-variant rounded-2xl outline-none font-medium text-sm focus:border-primary transition-all" placeholder="agent@estateflow.com" />
-                  </div>
-                  <div className="grid grid-cols-2 gap-6">
-                    <div className="space-y-2">
-                      <label className="text-[10px] font-black uppercase tracking-widest text-outline">Assigned Role</label>
-                      <select value={role} onChange={e => setRole(e.target.value)} className="w-full px-5 py-4 bg-surface-container-low border border-outline-variant rounded-2xl outline-none font-medium text-sm focus:border-primary transition-all appearance-none">
-                        <option>Luxury Specialist</option>
-                        <option>Senior Broker</option>
-                        <option>Operations Manager</option>
-                        <option>Junior Associate</option>
-                      </select>
+                {inviteResult ? (
+                  <div className="space-y-6 py-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                    <div className="w-16 h-16 bg-emerald-100 text-emerald-600 rounded-2xl flex items-center justify-center mx-auto">
+                      <span className="material-symbols-outlined text-[32px]">mail</span>
                     </div>
-                    <div className="space-y-2">
-                      <label className="text-[10px] font-black uppercase tracking-widest text-outline">Access Level</label>
-                      <select value={access} onChange={e => setAccess(e.target.value)} className="w-full px-5 py-4 bg-surface-container-low border border-outline-variant rounded-2xl outline-none font-medium text-sm focus:border-primary transition-all appearance-none">
-                        <option>Agent</option>
-                        <option>Manager</option>
-                        <option>Admin</option>
-                      </select>
+                    <div className="text-center space-y-2">
+                      <h4 className="text-lg font-black text-on-surface">Invitation Created!</h4>
+                      <p className="text-sm text-outline font-medium">An invitation link has been generated for <b>{inviteResult.email}</b>.</p>
+                    </div>
+                    <div className="p-4 bg-surface-container rounded-2xl border border-outline-variant break-all">
+                      <p className="text-[10px] font-black uppercase tracking-widest text-outline mb-2">Activation Link</p>
+                      <code className="text-xs font-bold text-primary">{inviteResult.link}</code>
+                    </div>
+                    <div className="flex gap-4">
+                      <button 
+                        onClick={() => {
+                          navigator.clipboard.writeText(inviteResult.link);
+                          toast.success('Link copied to clipboard!');
+                        }}
+                        className="flex-1 py-4 bg-primary text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl shadow-primary/20 hover:scale-[1.02] active:scale-95 transition-all"
+                      >
+                        Copy Link
+                      </button>
+                      <button 
+                        onClick={() => {
+                          setInviteResult(null);
+                          setShowInviteModal(false);
+                        }}
+                        className="flex-1 py-4 bg-surface-container text-on-surface rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-outline-variant transition-all"
+                      >
+                        Done
+                      </button>
                     </div>
                   </div>
-                </div>
+                ) : (
+                  <>
+                    <div className="space-y-6">
+                      <div className="grid grid-cols-2 gap-6">
+                        <div className="space-y-2">
+                          <label className="text-[10px] font-black uppercase tracking-widest text-outline">First Name</label>
+                          <input value={firstName} onChange={e => setFirstName(e.target.value)} className="w-full px-5 py-4 bg-surface-container-low border border-outline-variant rounded-2xl outline-none font-medium text-sm focus:border-primary transition-all" placeholder="John" />
+                        </div>
+                        <div className="space-y-2">
+                          <label className="text-[10px] font-black uppercase tracking-widest text-outline">Last Name</label>
+                          <input value={lastName} onChange={e => setLastName(e.target.value)} className="w-full px-5 py-4 bg-surface-container-low border border-outline-variant rounded-2xl outline-none font-medium text-sm focus:border-primary transition-all" placeholder="Doe" />
+                        </div>
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-black uppercase tracking-widest text-outline">Email Address</label>
+                        <input value={email} onChange={e => setEmail(e.target.value)} className="w-full px-5 py-4 bg-surface-container-low border border-outline-variant rounded-2xl outline-none font-medium text-sm focus:border-primary transition-all" placeholder="agent@estateflow.com" />
+                      </div>
+                      <div className="grid grid-cols-2 gap-6">
+                        <div className="space-y-2">
+                          <label className="text-[10px] font-black uppercase tracking-widest text-outline">Assigned Role</label>
+                          <select value={role} onChange={e => setRole(e.target.value)} className="w-full px-5 py-4 bg-surface-container-low border border-outline-variant rounded-2xl outline-none font-medium text-sm focus:border-primary transition-all appearance-none">
+                            <option>Luxury Specialist</option>
+                            <option>Senior Broker</option>
+                            <option>Operations Manager</option>
+                            <option>Junior Associate</option>
+                          </select>
+                        </div>
+                        <div className="space-y-2">
+                          <label className="text-[10px] font-black uppercase tracking-widest text-outline">Access Level</label>
+                          <select value={access} onChange={e => setAccess(e.target.value)} className="w-full px-5 py-4 bg-surface-container-low border border-outline-variant rounded-2xl outline-none font-medium text-sm focus:border-primary transition-all appearance-none">
+                            <option>Agent</option>
+                            <option>Manager</option>
+                            <option>Admin</option>
+                          </select>
+                        </div>
+                      </div>
+                    </div>
 
-                <div className="flex gap-4 pt-4">
-                  <button onClick={() => setShowInviteModal(false)} className="flex-1 py-4 rounded-2xl font-black text-xs uppercase tracking-widest text-outline hover:text-on-surface transition-all">Cancel</button>
-                  <button onClick={() => {
-                    if (!email) return;
-                    const newEmp = {
-                      id: employees.length + 1,
-                      name: email.split('@')[0].split('.').map(s => s.charAt(0).toUpperCase() + s.slice(1)).join(' '),
-                      role: role,
-                      email: email,
-                      status: 'Invited',
-                      statusCls: 'chip-amber',
-                      type: access,
-                      img: `https://i.pravatar.cc/100?img=${Math.floor(Math.random() * 70)}`,
-                      deals: 0,
-                      performance: 'N/A'
-                    };
-                    setEmployees([...employees, newEmp]);
-                    setEmail('');
-                    setShowInviteModal(false);
-                  }} className="flex-1 py-4 bg-primary text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl shadow-primary/20 hover:scale-[1.02] active:scale-95 transition-all">Send Invitation</button>
-                </div>
+                    <div className="flex gap-4 pt-4">
+                      <button onClick={() => setShowInviteModal(false)} className="flex-1 py-4 rounded-2xl font-black text-xs uppercase tracking-widest text-outline hover:text-on-surface transition-all">Cancel</button>
+                      <button 
+                        onClick={handleInvite} 
+                        disabled={loading}
+                        className="flex-1 py-4 bg-primary text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl shadow-primary/20 hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-50"
+                      >
+                        {loading ? 'Sending...' : 'Send Invitation'}
+                      </button>
+                    </div>
+                  </>
+                )}
               </div>
             </motion.div>
           </div>
@@ -221,3 +334,4 @@ export const EmployeeManagement: React.FC = () => {
     </motion.div>
   );
 };
+

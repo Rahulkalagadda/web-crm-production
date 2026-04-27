@@ -1,17 +1,98 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { toast } from 'react-hot-toast';
+import { tenantService } from '../services/tenant.service';
+import { useAuthStore } from '../store/authStore';
 
-const STAGES = [
-  { id: 1, name: 'Initial Contact', status: 'Active', desc: 'First touch with potential lead', rules: 2, icon: 'mail', color: '#4F46E5', bg: '#eef2ff' },
-  { id: 2, name: 'Property Viewing', status: 'Active', desc: 'Scheduled tour of inventory', rules: 1, icon: 'visibility', color: '#059669', bg: '#ecfdf5' },
+const INITIAL_STAGES = [
+  { id: 1, name: 'Initial Contact', status: 'Active', desc: 'First touch with potential lead', rules: 2, icon: 'mail', color: '#4F46E5', bg: '#eef2ff', active: false },
+  { id: 2, name: 'Property Viewing', status: 'Active', desc: 'Scheduled tour of inventory', rules: 1, icon: 'visibility', color: '#059669', bg: '#ecfdf5', active: false },
   { id: 3, name: 'Offer Submitted', status: 'Focused', desc: 'Legal offer paperwork initiated', rules: 4, icon: 'edit', color: '#4F46E5', bg: '#eef2ff', active: true },
-  { id: 4, name: 'Closing Underway', status: 'Active', desc: 'Escrow and final documentation', rules: 0, icon: 'task_alt', color: '#059669', bg: '#ecfdf5' },
+  { id: 4, name: 'Closing Underway', status: 'Active', desc: 'Escrow and final documentation', rules: 0, icon: 'task_alt', color: '#059669', bg: '#ecfdf5', active: false },
+];
+
+const ALL_PERMS = ['Manage Users', 'View Analytics', 'Configure Pipelines', 'Edit Billing', 'Delete Leads', 'Manage Leads', 'Assign Tasks', 'View Team Reports', 'Edit Property Listings', 'View Own Leads', 'Update Task Status', 'Log Activities', 'Add Notes'];
+
+const INITIAL_ROLES = [
+  { role: 'Owner', desc: 'Full administrative access to all modules and billing.', permissions: ['Manage Users', 'View Analytics', 'Configure Pipelines', 'Edit Billing', 'Delete Leads'], count: 1 },
+  { role: 'Manager', desc: 'Limited administrative access for team management.', permissions: ['Manage Leads', 'Assign Tasks', 'View Team Reports', 'Edit Property Listings'], count: 3 },
+  { role: 'Agent', desc: 'Individual access to assigned leads and tasks.', permissions: ['View Own Leads', 'Update Task Status', 'Log Activities', 'Add Notes'], count: 12 },
 ];
 
 export const Settings: React.FC = () => {
-  const [activeTab, setActiveTab] = useState('Pipeline Setup');
-
+  const { tenant, setTenant } = useAuthStore();
+  const [activeTab, setActiveTab] = useState('Company');
   const tabs = ['Company', 'Pipeline Setup', 'Roles & Permissions', 'Billing'];
+
+  // Company state
+  const [company, setCompany] = useState({ 
+    name: '', 
+    slug: '', 
+    email: '', 
+    phone: '' 
+  });
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    const fetchTenant = async () => {
+      const res = await tenantService.getMyTenant();
+      if (res.success) {
+        setTenant(res.data);
+        setCompany({
+          name: res.data.name || '',
+          slug: res.data.slug || '',
+          email: res.data.supportEmail || '',
+          phone: res.data.officialPhone || ''
+        });
+      }
+    };
+    fetchTenant();
+  }, [setTenant]);
+
+  // Pipeline state
+  const [stages, setStages] = useState(INITIAL_STAGES);
+  const [showAddStage, setShowAddStage] = useState(false);
+  const [newStage, setNewStage] = useState({ name: '', desc: '' });
+
+  // Roles state
+  const [roles, setRoles] = useState(INITIAL_ROLES);
+  const [editingRole, setEditingRole] = useState<string | null>(null);
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      const res = await tenantService.updateMyTenant({
+        name: company.name,
+        slug: company.slug,
+        supportEmail: company.email,
+        officialPhone: company.phone
+      });
+      if (res.success) {
+        setTenant(res.data);
+        toast.success('Settings saved successfully!');
+      }
+    } catch (error) {
+      toast.error('Failed to save settings');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleAddStage = () => {
+    if (!newStage.name.trim()) { toast.error('Stage name is required'); return; }
+    setStages(prev => [...prev, { id: Date.now(), name: newStage.name, desc: newStage.desc, status: 'Active', rules: 0, icon: 'adjust', color: '#4F46E5', bg: '#eef2ff', active: false }]);
+    setNewStage({ name: '', desc: '' });
+    setShowAddStage(false);
+    toast.success(`Stage "${newStage.name}" added!`);
+  };
+
+  const togglePermission = (roleIdx: number, perm: string) => {
+    setRoles(prev => prev.map((r, i) => {
+      if (i !== roleIdx) return r;
+      const has = r.permissions.includes(perm);
+      return { ...r, permissions: has ? r.permissions.filter(p => p !== perm) : [...r.permissions, perm] };
+    }));
+  };
 
   return (
     <div className="p-8 space-y-8 max-w-[1400px] mx-auto" style={{ fontFamily: 'Inter, sans-serif' }}>
@@ -30,8 +111,9 @@ export const Settings: React.FC = () => {
             Configure your workspace, pipelines, and team permissions.
           </p>
         </div>
-        <button className="bg-primary text-white px-8 py-3 rounded-xl font-bold text-sm shadow-xl shadow-primary/20 hover:scale-[1.02] active:scale-95 transition-all">
-          Save All Changes
+        <button onClick={handleSave} disabled={saving} className="bg-primary text-white px-8 py-3 rounded-xl font-bold text-sm shadow-xl shadow-primary/20 hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-60 flex items-center gap-2">
+          {saving && <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />}
+          {saving ? 'Saving…' : 'Save All Changes'}
         </button>
       </motion.div>
 
@@ -72,23 +154,42 @@ export const Settings: React.FC = () => {
             <div className="col-span-12 lg:col-span-8 space-y-6">
               <div className="flex items-center justify-between">
                 <h3 className="text-lg font-bold" style={{ color: 'var(--on-surface)' }}>Sales Pipeline Stages</h3>
-                <button className="flex items-center gap-2 text-primary text-xs font-bold uppercase tracking-wider hover:opacity-80 transition-all">
+                <button onClick={() => setShowAddStage(true)} className="flex items-center gap-2 text-primary text-xs font-bold uppercase tracking-wider hover:opacity-80 transition-all">
                   <span className="material-symbols-outlined text-sm">add</span>
                   Add Stage
                 </button>
               </div>
 
+              {/* Add Stage Modal */}
+              <AnimatePresence>
+                {showAddStage && (
+                  <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}
+                    className="card p-6 border-primary/30 bg-primary/5 space-y-4">
+                    <h4 className="text-sm font-black text-on-surface">New Pipeline Stage</h4>
+                    <div className="grid grid-cols-2 gap-4">
+                      <input value={newStage.name} onChange={e => setNewStage(s => ({ ...s, name: e.target.value }))}
+                        placeholder="Stage name" className="px-4 py-3 rounded-xl border border-outline-variant bg-white outline-none text-sm font-medium focus:border-primary transition-all" />
+                      <input value={newStage.desc} onChange={e => setNewStage(s => ({ ...s, desc: e.target.value }))}
+                        placeholder="Description" className="px-4 py-3 rounded-xl border border-outline-variant bg-white outline-none text-sm font-medium focus:border-primary transition-all" />
+                    </div>
+                    <div className="flex gap-3">
+                      <button onClick={handleAddStage} className="px-6 py-2.5 bg-primary text-white rounded-xl text-xs font-black uppercase tracking-widest">Add Stage</button>
+                      <button onClick={() => setShowAddStage(false)} className="px-6 py-2.5 border border-outline-variant rounded-xl text-xs font-black uppercase tracking-widest text-on-surface">Cancel</button>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
               <div className="space-y-4">
-                {STAGES.map((s) => (
+                {stages.map((s) => (
                   <motion.div
                     key={s.id}
                     whileHover={{ y: -2, boxShadow: '0 8px 24px rgba(0,0,0,0.06)' }}
-                    className={`card p-5 flex items-center gap-5 cursor-grab active:cursor-grabbing transition-all ${
+                    className={`card p-5 flex items-center gap-5 transition-all ${
                       s.active ? 'border-primary ring-1 ring-primary shadow-lg shadow-primary/5 bg-primary/5' : ''
                     }`}
                   >
-                    <span className="material-symbols-outlined text-outline group-hover:text-primary transition-colors">drag_indicator</span>
-                    
+                    <span className="material-symbols-outlined text-outline">drag_indicator</span>
                     <div className="flex-1 flex items-center justify-between">
                       <div className="flex items-center gap-4">
                         <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: s.bg }}>
@@ -99,14 +200,11 @@ export const Settings: React.FC = () => {
                             <span className="font-bold text-sm" style={{ color: 'var(--on-surface)' }}>{s.name}</span>
                             <span className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider ${
                               s.active ? 'bg-primary text-white' : 'bg-secondary-container text-secondary'
-                            }`}>
-                              {s.status}
-                            </span>
+                            }`}>{s.status}</span>
                           </div>
-                          <p className="text-xs" style={{ color: 'var(--on-surface-variant)' }}>{s.desc}</p>
+                          <p className="text-xs" style={{ color: 'var(--on-surface-variant)' }}>{s.desc || 'No description'}</p>
                         </div>
                       </div>
-
                       <div className="flex items-center gap-8">
                         <div className="text-right">
                           <p className="text-[9px] font-black uppercase tracking-widest mb-0.5" style={{ color: 'var(--outline)' }}>Automation</p>
@@ -114,20 +212,16 @@ export const Settings: React.FC = () => {
                             {s.rules > 0 ? `${s.rules} Rules Active` : 'No Rules'}
                           </p>
                         </div>
-                        <button className={`w-8 h-8 rounded-lg flex items-center justify-center transition-all ${
-                          s.active ? 'bg-primary text-white' : 'hover:bg-surface-container text-outline'
-                        }`}>
-                          <span className="material-symbols-outlined text-[18px]">{s.active ? 'edit' : 'settings'}</span>
+                        <button onClick={() => setStages(prev => prev.filter(x => x.id !== s.id))} className="w-8 h-8 rounded-lg flex items-center justify-center hover:bg-red-50 hover:text-red-500 text-outline transition-all">
+                          <span className="material-symbols-outlined text-[18px]">delete</span>
                         </button>
                       </div>
                     </div>
                   </motion.div>
                 ))}
 
-                <motion.div
-                  whileHover={{ scale: 1.01 }}
-                  className="border-2 border-dashed border-outline-variant rounded-2xl py-8 flex flex-col items-center justify-center text-outline hover:border-primary hover:text-primary transition-all cursor-pointer bg-white/50"
-                >
+                <motion.div whileHover={{ scale: 1.01 }} onClick={() => setShowAddStage(true)}
+                  className="border-2 border-dashed border-outline-variant rounded-2xl py-8 flex flex-col items-center justify-center text-outline hover:border-primary hover:text-primary transition-all cursor-pointer bg-white/50">
                   <span className="material-symbols-outlined text-3xl mb-2">add_circle</span>
                   <span className="font-bold text-sm uppercase tracking-wider">Create Custom Stage</span>
                 </motion.div>
@@ -187,14 +281,81 @@ export const Settings: React.FC = () => {
           </motion.div>
         )}
 
+        {activeTab === 'Roles & Permissions' && (
+          <motion.div key="roles" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="space-y-8">
+            <div className="flex justify-between items-center">
+               <h3 className="text-lg font-bold">Role-Based Access Control</h3>
+               <button className="btn-secondary py-2 px-4 text-xs font-black uppercase tracking-widest">+ Create Custom Role</button>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+               {roles.map((role, roleIdx) => (
+                 <div key={role.role} className="card p-6 flex flex-col hover:border-primary transition-all group">
+                    <div className="flex justify-between items-start mb-4">
+                       <div className="p-3 bg-primary/5 rounded-2xl">
+                          <span className="material-symbols-outlined text-primary">shield_person</span>
+                       </div>
+                       <span className="text-[10px] font-black uppercase tracking-widest text-outline">{role.count} Users</span>
+                    </div>
+                    <h4 className="text-base font-black text-on-surface mb-2">{role.role}</h4>
+                    <p className="text-xs text-on-surface-variant font-medium mb-4 line-clamp-2">{role.desc}</p>
+                    
+                    <div className="space-y-2 flex-1">
+                       <p className="text-[9px] font-black uppercase tracking-widest text-outline mb-3">Permissions</p>
+                       {editingRole === role.role ? (
+                         <div className="space-y-2">
+                           {ALL_PERMS.map(perm => {
+                             const active = role.permissions.includes(perm);
+                             return (
+                               <button key={perm} onClick={() => togglePermission(roleIdx, perm)}
+                                 className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-[10px] font-bold transition-all ${
+                                   active ? 'bg-primary/10 text-primary' : 'bg-surface-container text-outline hover:bg-surface-container-high'
+                                 }`}>
+                                 <span>{perm}</span>
+                                 <span className={`material-symbols-outlined text-sm ${active ? 'text-primary' : 'text-outline'}`}>
+                                   {active ? 'check_circle' : 'radio_button_unchecked'}
+                                 </span>
+                               </button>
+                             );
+                           })}
+                         </div>
+                       ) : (
+                         <div className="flex flex-wrap gap-2">
+                           {role.permissions.slice(0, 3).map(p => (
+                             <span key={p} className="text-[9px] px-2 py-1 bg-surface-container rounded-lg font-bold text-outline group-hover:bg-primary-container group-hover:text-primary transition-colors">{p}</span>
+                           ))}
+                           {role.permissions.length > 3 && <span className="text-[9px] px-2 py-1 text-outline font-bold">+{role.permissions.length - 3} more</span>}
+                         </div>
+                       )}
+                    </div>
+                    
+                    <button onClick={() => setEditingRole(editingRole === role.role ? null : role.role)}
+                      className="w-full mt-6 py-3 bg-surface-container-low hover:bg-white border border-outline-variant rounded-xl text-[10px] font-black uppercase tracking-widest text-on-surface transition-all">
+                      {editingRole === role.role ? 'Done Editing' : 'Edit Permissions'}
+                    </button>
+                 </div>
+               ))}
+            </div>
+
+            <div className="card p-8 bg-surface-container-low">
+               <div className="flex items-center gap-4 mb-6">
+                  <div className="w-12 h-12 bg-amber-100 rounded-2xl flex items-center justify-center text-amber-600">
+                     <span className="material-symbols-outlined">security_update_good</span>
+                  </div>
+                  <div>
+                     <h4 className="text-sm font-black text-on-surface uppercase tracking-tight">Security Audit</h4>
+                     <p className="text-xs text-outline font-medium">Last permission audit completed on April 20, 2024</p>
+                  </div>
+               </div>
+               <p className="text-xs text-on-surface-variant font-medium leading-relaxed">
+                  Roles and permissions are enforced globally across all modules. Changes to role permissions will take effect for all users assigned to that role upon their next login session.
+               </p>
+            </div>
+          </motion.div>
+        )}
+
         {activeTab === 'Company' && (
-          <motion.div
-            key="company"
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -20 }}
-            className="max-w-3xl space-y-10 py-4"
-          >
+          <motion.div key="company" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="max-w-3xl space-y-10 py-4">
             <div className="grid grid-cols-2 gap-8">
               <div className="space-y-4">
                 <label className="text-[10px] font-black uppercase tracking-widest text-outline">Company Logo</label>
@@ -206,12 +367,14 @@ export const Settings: React.FC = () => {
               <div className="space-y-6">
                 <div className="space-y-2">
                   <label className="text-[10px] font-black uppercase tracking-widest text-outline">Legal Entity Name</label>
-                  <input className="w-full px-5 py-4 bg-surface-container-low border border-outline-variant rounded-2xl outline-none font-medium text-sm" defaultValue="EstateFlow Elite Realty" />
+                  <input className="w-full px-5 py-4 bg-surface-container-low border border-outline-variant rounded-2xl outline-none font-medium text-sm focus:border-primary transition-all"
+                    value={company.name} onChange={e => setCompany(c => ({ ...c, name: e.target.value }))} />
                 </div>
                 <div className="space-y-2">
                   <label className="text-[10px] font-black uppercase tracking-widest text-outline">Workspace URL</label>
                   <div className="flex items-center gap-2">
-                    <input className="flex-1 px-5 py-4 bg-surface-container-low border border-outline-variant rounded-2xl outline-none font-medium text-sm" defaultValue="elite-realty" />
+                    <input className="flex-1 px-5 py-4 bg-surface-container-low border border-outline-variant rounded-2xl outline-none font-medium text-sm focus:border-primary transition-all"
+                      value={company.slug} onChange={e => setCompany(c => ({ ...c, slug: e.target.value }))} />
                     <span className="text-sm font-bold text-outline">.estateflow.com</span>
                   </div>
                 </div>
@@ -222,11 +385,13 @@ export const Settings: React.FC = () => {
               <div className="grid grid-cols-2 gap-6">
                 <div className="space-y-2">
                   <label className="text-[10px] font-black uppercase tracking-widest text-outline">Support Email</label>
-                  <input className="w-full px-5 py-4 bg-surface-container-low border border-outline-variant rounded-2xl outline-none font-medium text-sm" defaultValue="support@estateflow.com" />
+                  <input className="w-full px-5 py-4 bg-surface-container-low border border-outline-variant rounded-2xl outline-none font-medium text-sm focus:border-primary transition-all"
+                    value={company.email} onChange={e => setCompany(c => ({ ...c, email: e.target.value }))} />
                 </div>
                 <div className="space-y-2">
                   <label className="text-[10px] font-black uppercase tracking-widest text-outline">Official Phone</label>
-                  <input className="w-full px-5 py-4 bg-surface-container-low border border-outline-variant rounded-2xl outline-none font-medium text-sm" defaultValue="+1 (555) 000-0000" />
+                  <input className="w-full px-5 py-4 bg-surface-container-low border border-outline-variant rounded-2xl outline-none font-medium text-sm focus:border-primary transition-all"
+                    value={company.phone} onChange={e => setCompany(c => ({ ...c, phone: e.target.value }))} />
                 </div>
               </div>
             </div>
@@ -308,3 +473,4 @@ export const Settings: React.FC = () => {
     </div>
   );
 };
+
