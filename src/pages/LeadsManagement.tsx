@@ -76,6 +76,11 @@ export const LeadsManagement: React.FC = () => {
 
   const handleCreateLead = async () => {
     if (!firstName || !lastName || !newEmail) return;
+
+    if (pipelineStages.length === 0) {
+      toast.error('Please create a Pipeline Stage in Settings first');
+      return;
+    }
     
     try {
       const response = await leadsService.createLead({
@@ -85,7 +90,7 @@ export const LeadsManagement: React.FC = () => {
         phone: newPhone,
         notes: newNotes,
         budget: parseFloat(newBudget) || 0,
-        stageId: pipelineStages[0]?.id || '1',
+        stageId: pipelineStages[0].id,
         source: 'Web Admin',
       });
       
