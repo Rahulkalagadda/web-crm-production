@@ -9,7 +9,7 @@ class SocketService {
     const token = useAuthStore.getState().accessToken;
     if (!token || this.socket) return;
 
-    this.socket = io('http://localhost:3000', {
+    this.socket = io(import.meta.env.VITE_SOCKET_URL || 'http://localhost:3000', {
       auth: { token: `Bearer ${token}` },
       transports: ['websocket']
     });
