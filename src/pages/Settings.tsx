@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'react-hot-toast';
 import { tenantService } from '../services/tenant.service';
+import { pipelineService } from '../services/pipeline.service';
 import { useAuthStore } from '../store/authStore';
 
 const INITIAL_STAGES = [
@@ -49,6 +50,16 @@ export const Settings: React.FC = () => {
     fetchTenant();
   }, [setTenant]);
 
+  useEffect(() => {
+    const fetchStages = async () => {
+      const res = await pipelineService.getStages();
+      if (res.success) {
+        setStages(res.data as any);
+      }
+    };
+    fetchStages();
+  }, []);
+
   // Pipeline state
   const [stages, setStages] = useState(INITIAL_STAGES);
   const [showAddStage, setShowAddStage] = useState(false);
@@ -78,12 +89,22 @@ export const Settings: React.FC = () => {
     }
   };
 
-  const handleAddStage = () => {
+  const handleAddStage = async () => {
     if (!newStage.name.trim()) { toast.error('Stage name is required'); return; }
-    setStages(prev => [...prev, { id: Date.now(), name: newStage.name, desc: newStage.desc, status: 'Active', rules: 0, icon: 'adjust', color: '#4F46E5', bg: '#eef2ff', active: false }]);
-    setNewStage({ name: '', desc: '' });
-    setShowAddStage(false);
-    toast.success(`Stage "${newStage.name}" added!`);
+    try {
+      const res = await pipelineService.createStage({ 
+        name: newStage.name, 
+        order: stages.length 
+      });
+      if (res.success) {
+        setStages(prev => [...prev, res.data as any]);
+        setNewStage({ name: '', desc: '' });
+        setShowAddStage(false);
+        toast.success(`Stage "${newStage.name}" added!`);
+      }
+    } catch (error) {
+      toast.error('Failed to create stage');
+    }
   };
 
   const togglePermission = (roleIdx: number, perm: string) => {
