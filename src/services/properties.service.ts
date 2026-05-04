@@ -9,9 +9,11 @@ export interface Property {
   location: string;
   type: string;
   sqft: number;
+  bedrooms: number;
+  bathrooms: number;
+  yearBuilt?: number;
   status: string;
   images: string[];
-  yearBuilt?: number;
   createdAt: string;
   version: number;
 }

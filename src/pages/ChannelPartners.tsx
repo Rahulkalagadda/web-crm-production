@@ -4,6 +4,8 @@ import channelPartnersService from '../services/channelPartners.service';
 import type { ChannelPartner } from '../services/channelPartners.service';
 import { toast } from 'react-hot-toast';
 
+const fmt = (v: number) => v >= 10000000 ? `₹${(v / 10000000).toFixed(2)} Cr` : v >= 100000 ? `₹${(v / 100000).toFixed(2)} L` : `₹${(v / 1000).toFixed(0)} K`;
+
 export const ChannelPartners: React.FC = () => {
   const [partners, setPartners] = useState<ChannelPartner[]>([]);
   const [loading, setLoading] = useState(true);
@@ -142,7 +144,7 @@ export const ChannelPartners: React.FC = () => {
                 <div className="grid grid-cols-2 gap-4 py-4 border-y border-outline-variant border-dashed">
                   <div>
                     <p className="text-[10px] font-black text-outline uppercase tracking-tight">Trade Volume</p>
-                    <p className="text-sm font-black text-on-surface">${(partner.totalSales || 0) / 1000000}M</p>
+                    <p className="text-sm font-black text-on-surface">{fmt(partner.totalSales || 0)}</p>
                   </div>
                   <div>
                     <p className="text-[10px] font-black text-outline uppercase tracking-tight">Commission</p>
@@ -314,7 +316,7 @@ export const ChannelPartners: React.FC = () => {
                      { label: 'Primary Contact', val: selectedPartner.primaryContact || 'N/A', icon: 'person' },
                      { label: 'Commission Rate', val: `${selectedPartner.commissionRate || 2.5}%`, icon: 'percent' },
                      { label: 'Active Agents', val: selectedPartner.activeAgents?.toString() || '0', icon: 'badge' },
-                     { label: 'Total Sales Vol.', val: `$${(selectedPartner.totalSales || 0) / 1000000}M`, icon: 'trending_up' },
+                     { label: 'Total Sales Vol.', val: fmt(selectedPartner.totalSales || 0), icon: 'trending_up' },
                    ].map(item => (
                      <div key={item.label} className="p-6 bg-surface-container-low rounded-3xl border border-outline-variant">
                        <div className="w-8 h-8 rounded-lg bg-white flex items-center justify-center text-primary shadow-sm mb-4">

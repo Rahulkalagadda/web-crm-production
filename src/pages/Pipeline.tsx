@@ -7,7 +7,7 @@ import { pipelineService } from '../services/pipeline.service';
 import { usersService } from '../services/users.service';
 import confetti from 'canvas-confetti';
 
-const fmt = (v: number) => v >= 1000000 ? `$${(v / 1000000).toFixed(2)}M` : `$${(v / 1000).toFixed(0)}K`;
+const fmt = (v: number) => v >= 10000000 ? `₹${(v / 10000000).toFixed(2)} Cr` : v >= 100000 ? `₹${(v / 100000).toFixed(2)} L` : `₹${(v / 1000).toFixed(0)} K`;
 
 export const Pipeline: React.FC = () => {
   const { pipelineStages, setPipelineStages, leads, setLeads, moveLeadStage, addLead } = useCRMStore();
@@ -279,7 +279,7 @@ export const Pipeline: React.FC = () => {
 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-xs font-semibold mb-1.5 uppercase tracking-wider" style={{ color: 'var(--outline)' }}>Budget ($)</label>
+                    <label className="block text-xs font-semibold mb-1.5 uppercase tracking-wider" style={{ color: 'var(--outline)' }}>Budget (₹)</label>
                     <input
                       type="number"
                       placeholder="e.g. 500000"

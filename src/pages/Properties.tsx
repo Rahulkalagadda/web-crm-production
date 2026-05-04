@@ -16,6 +16,11 @@ export const Properties: React.FC = () => {
   const [sqft, setSqft] = useState('');
   const [address, setAddress] = useState('');
   const [type, setType] = useState('Single Family');
+  const [bedrooms, setBedrooms] = useState('0');
+  const [bathrooms, setBathrooms] = useState('0');
+  const [yearBuilt, setYearBuilt] = useState(new Date().getFullYear().toString());
+  const [description, setDescription] = useState('');
+  const [imageUrls, setImageUrls] = useState('');
 
   useEffect(() => {
     const fetchProperties = async () => {
@@ -118,18 +123,22 @@ export const Properties: React.FC = () => {
                 <p className="text-xs text-outline font-bold flex items-center gap-1.5 mb-6">
                   <span className="material-symbols-outlined text-sm">location_on</span> {property.location}
                 </p>
-                <div className="grid grid-cols-2 gap-4 pt-6 border-t border-outline-variant">
+                <div className="grid grid-cols-2 gap-y-4 gap-x-2 pt-6 border-t border-outline-variant">
                   <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 rounded-lg bg-surface-container flex items-center justify-center text-outline">
-                      <span className="material-symbols-outlined text-sm">home_work</span>
-                    </div>
-                    <span className="text-[10px] font-black uppercase tracking-widest text-outline">{property.type}</span>
+                    <span className="material-symbols-outlined text-sm text-outline">bed</span>
+                    <span className="text-[10px] font-black uppercase tracking-widest text-outline">{property.bedrooms} Bed</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 rounded-lg bg-surface-container flex items-center justify-center text-outline">
-                      <span className="material-symbols-outlined text-sm">square_foot</span>
-                    </div>
+                    <span className="material-symbols-outlined text-sm text-outline">bathtub</span>
+                    <span className="text-[10px] font-black uppercase tracking-widest text-outline">{property.bathrooms} Bath</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="material-symbols-outlined text-sm text-outline">square_foot</span>
                     <span className="text-[10px] font-black uppercase tracking-widest text-outline">{property.sqft} sqft</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="material-symbols-outlined text-sm text-outline">home_work</span>
+                    <span className="text-[10px] font-black uppercase tracking-widest text-outline">{property.type}</span>
                   </div>
                 </div>
               </div>
@@ -189,6 +198,26 @@ export const Properties: React.FC = () => {
                     <label className="text-[10px] font-black uppercase tracking-widest text-outline">Location Address</label>
                     <input value={address} onChange={e => setAddress(e.target.value)} className="w-full px-5 py-4 bg-surface-container-low border border-outline-variant rounded-2xl outline-none font-medium text-sm focus:border-primary transition-all" placeholder="e.g. 123 Luxury Way, Beverly Hills" />
                   </div>
+                  <div className="col-span-2 md:col-span-1 space-y-2">
+                    <label className="text-[10px] font-black uppercase tracking-widest text-outline">Bedrooms</label>
+                    <input type="number" value={bedrooms} onChange={e => setBedrooms(e.target.value)} className="w-full px-5 py-4 bg-surface-container-low border border-outline-variant rounded-2xl outline-none font-medium text-sm focus:border-primary transition-all" placeholder="e.g. 4" />
+                  </div>
+                  <div className="col-span-2 md:col-span-1 space-y-2">
+                    <label className="text-[10px] font-black uppercase tracking-widest text-outline">Bathrooms</label>
+                    <input type="number" value={bathrooms} onChange={e => setBathrooms(e.target.value)} className="w-full px-5 py-4 bg-surface-container-low border border-outline-variant rounded-2xl outline-none font-medium text-sm focus:border-primary transition-all" placeholder="e.g. 3" />
+                  </div>
+                  <div className="col-span-2 md:col-span-1 space-y-2">
+                    <label className="text-[10px] font-black uppercase tracking-widest text-outline">Year Built</label>
+                    <input type="number" value={yearBuilt} onChange={e => setYearBuilt(e.target.value)} className="w-full px-5 py-4 bg-surface-container-low border border-outline-variant rounded-2xl outline-none font-medium text-sm focus:border-primary transition-all" placeholder="e.g. 2022" />
+                  </div>
+                  <div className="col-span-2 space-y-2">
+                    <label className="text-[10px] font-black uppercase tracking-widest text-outline">Image URLs (comma separated)</label>
+                    <input value={imageUrls} onChange={e => setImageUrls(e.target.value)} className="w-full px-5 py-4 bg-surface-container-low border border-outline-variant rounded-2xl outline-none font-medium text-sm focus:border-primary transition-all" placeholder="e.g. https://image1.jpg, https://image2.jpg" />
+                  </div>
+                  <div className="col-span-2 space-y-2">
+                    <label className="text-[10px] font-black uppercase tracking-widest text-outline">Description</label>
+                    <textarea value={description} onChange={e => setDescription(e.target.value)} rows={3} className="w-full px-5 py-4 bg-surface-container-low border border-outline-variant rounded-2xl outline-none font-medium text-sm focus:border-primary transition-all resize-none" placeholder="Describe the property..." />
+                  </div>
                 </div>
 
                 <div className="flex gap-4 pt-4">
@@ -201,6 +230,11 @@ export const Properties: React.FC = () => {
                         location: address,
                         price: parseFloat(price),
                         sqft: parseInt(sqft),
+                        bedrooms: parseInt(bedrooms),
+                        bathrooms: parseInt(bathrooms),
+                        yearBuilt: parseInt(yearBuilt),
+                        description,
+                        images: imageUrls.split(',').map(s => s.trim()).filter(s => s !== ''),
                         type,
                         status: 'Available',
                       });
@@ -210,6 +244,11 @@ export const Properties: React.FC = () => {
                         setPrice('');
                         setSqft('');
                         setAddress('');
+                        setBedrooms('0');
+                        setBathrooms('0');
+                        setYearBuilt(new Date().getFullYear().toString());
+                        setDescription('');
+                        setImageUrls('');
                         setShowAddModal(false);
                       }
                     } catch (error) {

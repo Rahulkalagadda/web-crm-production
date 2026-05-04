@@ -18,6 +18,11 @@ export const PropertyDetails: React.FC = () => {
   const [sqft, setSqft] = useState('');
   const [location, setLocation] = useState('');
   const [description, setDescription] = useState('');
+  const [bedrooms, setBedrooms] = useState('0');
+  const [bathrooms, setBathrooms] = useState('0');
+  const [yearBuilt, setYearBuilt] = useState('');
+  const [imageUrls, setImageUrls] = useState('');
+  const [type, setType] = useState('Single Family');
 
   useEffect(() => {
     if (!id) return;
@@ -32,6 +37,11 @@ export const PropertyDetails: React.FC = () => {
           setSqft(res.data.sqft.toString());
           setLocation(res.data.location);
           setDescription(res.data.description || '');
+          setBedrooms(res.data.bedrooms?.toString() || '0');
+          setBathrooms(res.data.bathrooms?.toString() || '0');
+          setYearBuilt(res.data.yearBuilt?.toString() || '');
+          setImageUrls(res.data.images?.join(', ') || '');
+          setType(res.data.type);
         }
       } catch (error) {
         toast.error('Failed to load property details');
@@ -56,6 +66,11 @@ export const PropertyDetails: React.FC = () => {
         sqft: parseInt(sqft),
         location,
         description,
+        bedrooms: parseInt(bedrooms),
+        bathrooms: parseInt(bathrooms),
+        yearBuilt: parseInt(yearBuilt),
+        images: imageUrls.split(',').map(s => s.trim()).filter(s => s !== ''),
+        type,
         version: property.version,
       });
       if (res.success) {
@@ -140,8 +155,8 @@ export const PropertyDetails: React.FC = () => {
             {[
               { label: 'Price', val: `₹${Number(property.price).toLocaleString('en-IN')}`, icon: 'payments' },
               { label: 'Square Feet', val: `${property.sqft} sqft`, icon: 'square_foot' },
-              { label: 'Bedrooms', val: '4', icon: 'bed' },
-              { label: 'Bathrooms', val: '5', icon: 'bathtub' },
+              { label: 'Bedrooms', val: property.bedrooms?.toString() || '0', icon: 'bed' },
+              { label: 'Bathrooms', val: property.bathrooms?.toString() || '0', icon: 'bathtub' },
             ].map(stat => (
               <div key={stat.label} className="card p-5 text-center">
                 <span className="material-symbols-outlined text-primary mb-2 text-2xl">{stat.icon}</span>
@@ -299,6 +314,37 @@ export const PropertyDetails: React.FC = () => {
                 <div className="col-span-2 md:col-span-1 space-y-2">
                   <label className="text-[10px] font-black uppercase tracking-widest text-outline">Square Footage</label>
                   <input value={sqft} onChange={e => setSqft(e.target.value)} className="w-full px-5 py-4 bg-surface-container-low border border-outline-variant rounded-2xl outline-none font-medium text-sm focus:border-primary transition-all" />
+                </div>
+                <div className="col-span-2 md:col-span-1 space-y-2">
+                  <label className="text-[10px] font-black uppercase tracking-widest text-outline">Property Type</label>
+                  <select value={type} onChange={e => setType(e.target.value)} className="w-full px-5 py-4 bg-surface-container-low border border-outline-variant rounded-2xl outline-none font-medium text-sm focus:border-primary transition-all">
+                    <option>Single Family</option>
+                    <option>Villa</option>
+                    <option>Penthouse</option>
+                    <option>Mansion</option>
+                    <option>Apartment</option>
+                    <option>Loft</option>
+                  </select>
+                </div>
+                <div className="col-span-2 md:col-span-1 space-y-2">
+                  <label className="text-[10px] font-black uppercase tracking-widest text-outline">Bedrooms</label>
+                  <input type="number" value={bedrooms} onChange={e => setBedrooms(e.target.value)} className="w-full px-5 py-4 bg-surface-container-low border border-outline-variant rounded-2xl outline-none font-medium text-sm focus:border-primary transition-all" />
+                </div>
+                <div className="col-span-2 md:col-span-1 space-y-2">
+                  <label className="text-[10px] font-black uppercase tracking-widest text-outline">Bathrooms</label>
+                  <input type="number" value={bathrooms} onChange={e => setBathrooms(e.target.value)} className="w-full px-5 py-4 bg-surface-container-low border border-outline-variant rounded-2xl outline-none font-medium text-sm focus:border-primary transition-all" />
+                </div>
+                <div className="col-span-2 md:col-span-1 space-y-2">
+                  <label className="text-[10px] font-black uppercase tracking-widest text-outline">Year Built</label>
+                  <input type="number" value={yearBuilt} onChange={e => setYearBuilt(e.target.value)} className="w-full px-5 py-4 bg-surface-container-low border border-outline-variant rounded-2xl outline-none font-medium text-sm focus:border-primary transition-all" />
+                </div>
+                <div className="col-span-2 space-y-2">
+                  <label className="text-[10px] font-black uppercase tracking-widest text-outline">Location Address</label>
+                  <input value={location} onChange={e => setLocation(e.target.value)} className="w-full px-5 py-4 bg-surface-container-low border border-outline-variant rounded-2xl outline-none font-medium text-sm focus:border-primary transition-all" />
+                </div>
+                <div className="col-span-2 space-y-2">
+                  <label className="text-[10px] font-black uppercase tracking-widest text-outline">Image URLs (comma separated)</label>
+                  <input value={imageUrls} onChange={e => setImageUrls(e.target.value)} className="w-full px-5 py-4 bg-surface-container-low border border-outline-variant rounded-2xl outline-none font-medium text-sm focus:border-primary transition-all" />
                 </div>
                 <div className="col-span-2 space-y-2">
                   <label className="text-[10px] font-black uppercase tracking-widest text-outline">Description</label>
