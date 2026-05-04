@@ -8,7 +8,7 @@ const fadeUp = (delay = 0) => ({
   transition: { duration: 0.4, delay, ease: 'easeOut' as const },
 });
 
-const fmt = (v: number) => v >= 1000000 ? `$${(v / 1000000).toFixed(2)}M` : `$${(v / 1000).toFixed(0)}K`;
+const fmt = (v: number) => v >= 10000000 ? `₹${(v / 10000000).toFixed(2)} Cr` : v >= 100000 ? `₹${(v / 100000).toFixed(2)} L` : `₹${(v / 1000).toFixed(0)} K`;
 
 export const ReportsAnalytics: React.FC = () => {
   const { leads, pipelineStages, getConversionRate } = useCRMStore();
@@ -164,7 +164,7 @@ export const ReportsAnalytics: React.FC = () => {
                 style={{ opacity: bar.s ? 1 : 0.6 }}
               >
                 <div className="absolute -top-10 left-1/2 -translate-x-1/2 bg-on-surface text-white text-[10px] px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
-                  ${(Math.random() * 5 + 1).toFixed(1)}M
+                  ₹{(Math.random() * 5 + 1).toFixed(1)} Cr
                 </div>
               </motion.div>
             ))}

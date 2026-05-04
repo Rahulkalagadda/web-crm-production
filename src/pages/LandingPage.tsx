@@ -219,7 +219,7 @@ export const LandingPage: React.FC = () => {
                       </div>
                     </div>
                     <p className="text-[11px] font-medium text-on-surface-variant italic leading-snug">
-                      "Just closed the $12M Penthouse deal. Thanks to the automated pipeline tracking!"
+                      "Just closed the ₹100 Cr Penthouse deal. Thanks to the automated pipeline tracking!"
                     </p>
                   </motion.div>
                 </div>
@@ -409,8 +409,8 @@ export const LandingPage: React.FC = () => {
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
               {[
-                { name: 'Agent', price: isYearly ? '39' : '49', features: ['500 Active Leads', 'Automated Pipelines', 'Basic Analytics', 'Mobile App Access'], btn: 'Select Plan' },
-                { name: 'Brokerage', price: isYearly ? '99' : '129', features: ['Unlimited Leads', 'AI Lead Scoring', 'Multi-Team Routing', 'Full API Access', 'Custom Branding'], btn: 'Start Free Trial', popular: true },
+                { name: 'Agent', price: isYearly ? '2,999' : '3,999', features: ['500 Active Leads', 'Automated Pipelines', 'Basic Analytics', 'Mobile App Access'], btn: 'Select Plan' },
+                { name: 'Brokerage', price: isYearly ? '7,999' : '9,999', features: ['Unlimited Leads', 'AI Lead Scoring', 'Multi-Team Routing', 'Full API Access', 'Custom Branding'], btn: 'Start Free Trial', popular: true },
                 { name: 'Enterprise', price: 'Custom', features: ['Dedicated Success Manager', 'Custom 3rd Party Integrations', 'Global SSO & Whitelabel', 'On-site Training'], btn: 'Contact Sales' },
               ].map(plan => (
                 <motion.div 
@@ -427,7 +427,7 @@ export const LandingPage: React.FC = () => {
                   )}
                   <h3 className="text-2xl font-black mb-4 uppercase tracking-tighter" style={{ color: plan.popular ? 'var(--primary)' : 'var(--on-surface)' }}>{plan.name}</h3>
                   <div className="flex items-baseline gap-2 mb-12">
-                    <span className="text-5xl font-black text-on-surface tracking-tighter">${plan.price}</span>
+                    <span className="text-5xl font-black text-on-surface tracking-tighter">₹{plan.price}</span>
                     {plan.price !== 'Custom' && <span className="text-outline font-black text-lg">/mo</span>}
                   </div>
                   <ul className="space-y-6 mb-16 flex-grow">

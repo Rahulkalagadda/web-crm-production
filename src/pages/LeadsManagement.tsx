@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { toast } from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
 import { useCRMStore } from '../store/crmStore';
 import { useUsersStore } from '../store/usersStore';
@@ -427,7 +428,7 @@ export const LeadsManagement: React.FC = () => {
                     <input value={newNotes} onChange={e => setNewNotes(e.target.value)} className="w-full px-5 py-4 bg-surface-container-low border border-outline-variant rounded-2xl outline-none font-medium text-sm focus:border-primary transition-all" placeholder="e.g. Interested in Penthouse" />
                   </div>
                   <div className="col-span-2 md:col-span-1 space-y-2">
-                    <label className="text-[10px] font-black uppercase tracking-widest text-outline">Budget ($)</label>
+                    <label className="text-[10px] font-black uppercase tracking-widest text-outline">Budget (₹)</label>
                     <input type="number" value={newBudget} onChange={e => setNewBudget(e.target.value)} className="w-full px-5 py-4 bg-surface-container-low border border-outline-variant rounded-2xl outline-none font-medium text-sm focus:border-primary transition-all" placeholder="e.g. 500000" />
                   </div>
                 </div>

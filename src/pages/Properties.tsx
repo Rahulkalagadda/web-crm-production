@@ -113,7 +113,7 @@ export const Properties: React.FC = () => {
               <div className="p-6">
                 <div className="flex justify-between items-start mb-2">
                   <h3 className="text-lg font-black text-on-surface group-hover:text-primary transition-colors">{property.name}</h3>
-                  <span className="text-sm font-black text-primary">${Number(property.price).toLocaleString()}</span>
+                  <span className="text-sm font-black text-primary">₹{Number(property.price).toLocaleString('en-IN')}</span>
                 </div>
                 <p className="text-xs text-outline font-bold flex items-center gap-1.5 mb-6">
                   <span className="material-symbols-outlined text-sm">location_on</span> {property.location}
@@ -167,7 +167,7 @@ export const Properties: React.FC = () => {
                     <input value={title} onChange={e => setTitle(e.target.value)} className="w-full px-5 py-4 bg-surface-container-low border border-outline-variant rounded-2xl outline-none font-medium text-sm focus:border-primary transition-all" placeholder="e.g. The Glass House" />
                   </div>
                   <div className="col-span-2 md:col-span-1 space-y-2">
-                    <label className="text-[10px] font-black uppercase tracking-widest text-outline">Listing Price ($)</label>
+                    <label className="text-[10px] font-black uppercase tracking-widest text-outline">Listing Price (₹)</label>
                     <input value={price} onChange={e => setPrice(e.target.value)} className="w-full px-5 py-4 bg-surface-container-low border border-outline-variant rounded-2xl outline-none font-medium text-sm focus:border-primary transition-all" placeholder="e.g. 1500000" />
                   </div>
                   <div className="col-span-2 md:col-span-1 space-y-2">

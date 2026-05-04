@@ -437,7 +437,7 @@ export const Settings: React.FC = () => {
                        <p className="text-indigo-100 text-sm font-medium mt-2">Next billing date: Dec 24, 2024</p>
                      </div>
                      <div className="text-right">
-                       <h4 className="text-4xl font-black">$499<span className="text-xl font-bold opacity-60">/mo</span></h4>
+                       <h4 className="text-4xl font-black">₹39,999<span className="text-xl font-bold opacity-60">/mo</span></h4>
                        <span className="inline-block mt-2 px-3 py-1 bg-white/20 rounded-full text-[10px] font-black uppercase tracking-widest">Yearly Billing</span>
                      </div>
                    </div>

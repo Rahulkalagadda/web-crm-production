@@ -138,7 +138,7 @@ export const PropertyDetails: React.FC = () => {
           {/* Key Stats */}
           <div className="grid grid-cols-4 gap-4">
             {[
-              { label: 'Price', val: `$${Number(property.price).toLocaleString()}`, icon: 'payments' },
+              { label: 'Price', val: `₹${Number(property.price).toLocaleString('en-IN')}`, icon: 'payments' },
               { label: 'Square Feet', val: `${property.sqft} sqft`, icon: 'square_foot' },
               { label: 'Bedrooms', val: '4', icon: 'bed' },
               { label: 'Bathrooms', val: '5', icon: 'bathtub' },
@@ -293,7 +293,7 @@ export const PropertyDetails: React.FC = () => {
                   <input value={name} onChange={e => setName(e.target.value)} className="w-full px-5 py-4 bg-surface-container-low border border-outline-variant rounded-2xl outline-none font-medium text-sm focus:border-primary transition-all" />
                 </div>
                 <div className="col-span-2 md:col-span-1 space-y-2">
-                  <label className="text-[10px] font-black uppercase tracking-widest text-outline">Listing Price ($)</label>
+                  <label className="text-[10px] font-black uppercase tracking-widest text-outline">Listing Price (₹)</label>
                   <input value={price} onChange={e => setPrice(e.target.value)} className="w-full px-5 py-4 bg-surface-container-low border border-outline-variant rounded-2xl outline-none font-medium text-sm focus:border-primary transition-all" />
                 </div>
                 <div className="col-span-2 md:col-span-1 space-y-2">

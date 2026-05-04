@@ -14,7 +14,7 @@ const fadeUp = (delay = 0) => ({
   transition: { duration: 0.4, delay, ease: 'easeOut' as const },
 });
 
-const fmt = (v: number) => v >= 1000000 ? `$${(v / 1000000).toFixed(2)}M` : `$${(v / 1000).toFixed(0)}K`;
+const fmt = (v: number) => v >= 10000000 ? `₹${(v / 10000000).toFixed(2)} Cr` : v >= 100000 ? `₹${(v / 100000).toFixed(2)} L` : `₹${(v / 1000).toFixed(0)} K`;
 
 export const WorkspaceOverview: React.FC = () => {
   const { leads, setLeads, pipelineStages, setPipelineStages, getPipelineValue, getConversionRate } = useCRMStore();
@@ -62,7 +62,7 @@ export const WorkspaceOverview: React.FC = () => {
     { label: 'Total Leads', value: totalLeads.toString(), change: '+12.5%', up: true, icon: 'group', color: '#4F46E5', bg: '#eef2ff' },
     { label: 'Active Pipeline Value', value: fmt(pipelineValue), sub: `Across ${activeDeals} pending contracts`, change: '+8.2%', up: true, icon: 'payments', color: '#059669', bg: '#ecfdf5' },
     { label: 'Conversion Rate', value: `${conversionRate.toFixed(1)}%`, change: '-0.4%', up: false, icon: 'speed', color: '#d97706', bg: '#fffbeb' },
-    { label: 'Total Revenue (YTD)', value: fmt(totalRevenue), sub: 'Target: $3.0M', change: '+21.4%', up: true, icon: 'trending_up', color: '#7c3aed', bg: '#f5f3ff' },
+    { label: 'Total Revenue (YTD)', value: fmt(totalRevenue), sub: 'Target: ₹25 Cr', change: '+21.4%', up: true, icon: 'trending_up', color: '#7c3aed', bg: '#f5f3ff' },
   ];
 
   // Computed Pipeline Data

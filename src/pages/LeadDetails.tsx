@@ -154,7 +154,7 @@ export const LeadDetails: React.FC = () => {
                     />
                   </div>
                 ) : (
-                  <>Budget: ${Number(lead.budget || 0).toLocaleString()}</>
+                  <>Budget: ₹{Number(lead.budget || 0).toLocaleString('en-IN')}</>
                 )}
               </span>
               <span className="w-1.5 h-1.5 bg-outline-variant rounded-full"></span>
@@ -227,7 +227,7 @@ export const LeadDetails: React.FC = () => {
                     {[
                       { label: 'Lead Source', val: lead.source, icon: 'language' },
                       { label: 'Interested Property', val: '742 Evergreen Terrace, Beverly Hills', icon: 'home_work', link: true },
-                      { label: 'Pre-Approval Status', val: 'Verified $1.5M', icon: 'verified', status: true },
+                      { label: 'Pre-Approval Status', val: 'Verified ₹10 Cr', icon: 'verified', status: true },
                       { label: 'Expected Close Date', val: 'Oct 12, 2024', icon: 'calendar_today' },
                     ].map(item => (
                       <div key={item.label} className="space-y-2">

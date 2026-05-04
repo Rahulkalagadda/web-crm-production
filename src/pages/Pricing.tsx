@@ -54,7 +54,7 @@ export const Pricing: React.FC = () => {
             <h3 className="font-h3 text-h3 mb-2">Basic</h3>
             <p className="font-body-sm text-body-sm text-on-surface-variant mb-6">Perfect for individual agents.</p>
             <div className="flex items-baseline gap-1">
-              <span className="font-h2 text-h2">$29</span>
+              <span className="font-h2 text-h2">₹2,499</span>
               <span className="text-on-surface-variant font-body-md">/mo</span>
             </div>
           </div>
@@ -91,7 +91,7 @@ export const Pricing: React.FC = () => {
             <h3 className="font-h3 text-h3 mb-2">Pro</h3>
             <p className="font-body-sm text-body-sm text-on-surface-variant mb-6">For high-performance teams.</p>
             <div className="flex items-baseline gap-1">
-              <span className="font-h2 text-h2">$79</span>
+              <span className="font-h2 text-h2">₹6,499</span>
               <span className="text-on-surface-variant font-body-md">/mo</span>
             </div>
           </div>
