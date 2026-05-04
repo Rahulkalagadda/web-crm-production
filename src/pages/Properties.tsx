@@ -47,7 +47,7 @@ export const Properties: React.FC = () => {
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4, ease: 'easeOut' as any }}
-      className="p-8 space-y-8"
+      className="p-8 space-y-8 max-w-[1600px] mx-auto"
       style={{ fontFamily: 'Inter, sans-serif' }}
     >
       {/* Header */}
@@ -82,7 +82,7 @@ export const Properties: React.FC = () => {
       </div>
 
       {/* Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
         {loading ? (
           <div className="col-span-full p-20 text-center font-bold text-outline">Loading Property Portfolio...</div>
         ) : filtered.length === 0 ? (
@@ -123,7 +123,7 @@ export const Properties: React.FC = () => {
                 <p className="text-xs text-outline font-bold flex items-center gap-1.5 mb-6">
                   <span className="material-symbols-outlined text-sm">location_on</span> {property.location}
                 </p>
-                <div className="grid grid-cols-2 gap-y-4 gap-x-2 pt-6 border-t border-outline-variant">
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-y-4 gap-x-2 pt-6 border-t border-outline-variant">
                   <div className="flex items-center gap-2">
                     <span className="material-symbols-outlined text-sm text-outline">bed</span>
                     <span className="text-[10px] font-black uppercase tracking-widest text-outline">{property.bedrooms} Bed</span>
