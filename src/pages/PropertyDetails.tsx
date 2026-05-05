@@ -295,67 +295,100 @@ export const PropertyDetails: React.FC = () => {
       {/* Edit Property Modal */}
       <AnimatePresence>
         {showEditModal && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center p-6">
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-on-surface/40 backdrop-blur-sm" onClick={() => setShowEditModal(false)} />
-            <motion.div initial={{ opacity: 0, scale: 0.95, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95 }} className="relative w-full max-w-2xl bg-white rounded-3xl shadow-2xl overflow-hidden p-8 space-y-8">
-              <header>
-                <h3 className="text-2xl font-black text-on-surface">Edit Property Details</h3>
-                <p className="text-sm font-medium text-outline mt-1">Refine listing information for the elite market.</p>
-              </header>
-              <div className="grid grid-cols-2 gap-6">
-                <div className="col-span-2 space-y-2">
-                  <label className="text-[10px] font-black uppercase tracking-widest text-outline">Property Title</label>
-                  <input value={name} onChange={e => setName(e.target.value)} className="w-full px-5 py-4 bg-surface-container-low border border-outline-variant rounded-2xl outline-none font-medium text-sm focus:border-primary transition-all" />
+          <div className="fixed inset-0 z-[100] overflow-y-auto">
+            <div className="flex min-h-full items-center justify-center p-4 md:p-8 text-center">
+              <motion.div 
+                initial={{ opacity: 0 }} 
+                animate={{ opacity: 1 }} 
+                exit={{ opacity: 0 }} 
+                className="fixed inset-0 bg-on-surface/40 backdrop-blur-sm" 
+                onClick={() => setShowEditModal(false)} 
+              />
+              
+              <motion.div 
+                initial={{ opacity: 0, scale: 0.95, y: 20 }} 
+                animate={{ opacity: 1, scale: 1, y: 0 }} 
+                exit={{ opacity: 0, scale: 0.95 }} 
+                className="relative w-full max-w-2xl bg-white rounded-[32px] shadow-2xl overflow-hidden text-left flex flex-col max-h-[90vh]"
+              >
+                {/* Modal Header */}
+                <div className="p-8 pb-0 shrink-0">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <h3 className="text-2xl font-black text-on-surface">Edit Property Details</h3>
+                      <p className="text-sm font-medium text-outline mt-1">Refine listing information for the elite market.</p>
+                    </div>
+                    <button 
+                      onClick={() => setShowEditModal(false)}
+                      className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-surface-container transition-colors"
+                    >
+                      <span className="material-symbols-outlined text-outline">close</span>
+                    </button>
+                  </div>
                 </div>
-                <div className="col-span-2 md:col-span-1 space-y-2">
-                  <label className="text-[10px] font-black uppercase tracking-widest text-outline">Listing Price (₹)</label>
-                  <input value={price} onChange={e => setPrice(e.target.value)} className="w-full px-5 py-4 bg-surface-container-low border border-outline-variant rounded-2xl outline-none font-medium text-sm focus:border-primary transition-all" />
+
+                {/* Modal Content - Scrollable */}
+                <div className="p-8 pt-6 overflow-y-auto custom-scrollbar flex-1">
+                  <div className="grid grid-cols-2 gap-6">
+                    <div className="col-span-2 space-y-2">
+                      <label className="text-[10px] font-black uppercase tracking-widest text-outline">Property Title</label>
+                      <input value={name} onChange={e => setName(e.target.value)} className="w-full px-5 py-4 bg-surface-container-low border border-outline-variant rounded-2xl outline-none font-medium text-sm focus:border-primary transition-all" />
+                    </div>
+                    <div className="col-span-2 md:col-span-1 space-y-2">
+                      <label className="text-[10px] font-black uppercase tracking-widest text-outline">Listing Price (₹)</label>
+                      <input value={price} onChange={e => setPrice(e.target.value)} className="w-full px-5 py-4 bg-surface-container-low border border-outline-variant rounded-2xl outline-none font-medium text-sm focus:border-primary transition-all" />
+                    </div>
+                    <div className="col-span-2 md:col-span-1 space-y-2">
+                      <label className="text-[10px] font-black uppercase tracking-widest text-outline">Square Footage</label>
+                      <input value={sqft} onChange={e => setSqft(e.target.value)} className="w-full px-5 py-4 bg-surface-container-low border border-outline-variant rounded-2xl outline-none font-medium text-sm focus:border-primary transition-all" />
+                    </div>
+                    <div className="col-span-2 md:col-span-1 space-y-2">
+                      <label className="text-[10px] font-black uppercase tracking-widest text-outline">Property Type</label>
+                      <select value={type} onChange={e => setType(e.target.value)} className="w-full px-5 py-4 bg-surface-container-low border border-outline-variant rounded-2xl outline-none font-medium text-sm focus:border-primary transition-all">
+                        <option>Single Family</option>
+                        <option>Villa</option>
+                        <option>Penthouse</option>
+                        <option>Mansion</option>
+                        <option>Apartment</option>
+                        <option>Loft</option>
+                      </select>
+                    </div>
+                    <div className="col-span-2 md:col-span-1 space-y-2">
+                      <label className="text-[10px] font-black uppercase tracking-widest text-outline">Bedrooms</label>
+                      <input type="number" value={bedrooms} onChange={e => setBedrooms(e.target.value)} className="w-full px-5 py-4 bg-surface-container-low border border-outline-variant rounded-2xl outline-none font-medium text-sm focus:border-primary transition-all" />
+                    </div>
+                    <div className="col-span-2 md:col-span-1 space-y-2">
+                      <label className="text-[10px] font-black uppercase tracking-widest text-outline">Bathrooms</label>
+                      <input type="number" value={bathrooms} onChange={e => setBathrooms(e.target.value)} className="w-full px-5 py-4 bg-surface-container-low border border-outline-variant rounded-2xl outline-none font-medium text-sm focus:border-primary transition-all" />
+                    </div>
+                    <div className="col-span-2 md:col-span-1 space-y-2">
+                      <label className="text-[10px] font-black uppercase tracking-widest text-outline">Year Built</label>
+                      <input type="number" value={yearBuilt} onChange={e => setYearBuilt(e.target.value)} className="w-full px-5 py-4 bg-surface-container-low border border-outline-variant rounded-2xl outline-none font-medium text-sm focus:border-primary transition-all" />
+                    </div>
+                    <div className="col-span-2 space-y-2">
+                      <label className="text-[10px] font-black uppercase tracking-widest text-outline">Location Address</label>
+                      <input value={location} onChange={e => setLocation(e.target.value)} className="w-full px-5 py-4 bg-surface-container-low border border-outline-variant rounded-2xl outline-none font-medium text-sm focus:border-primary transition-all" />
+                    </div>
+                    <div className="col-span-2 space-y-2">
+                      <label className="text-[10px] font-black uppercase tracking-widest text-outline">Image URLs (comma separated)</label>
+                      <input value={imageUrls} onChange={e => setImageUrls(e.target.value)} className="w-full px-5 py-4 bg-surface-container-low border border-outline-variant rounded-2xl outline-none font-medium text-sm focus:border-primary transition-all" />
+                    </div>
+                    <div className="col-span-2 space-y-2">
+                      <label className="text-[10px] font-black uppercase tracking-widest text-outline">Description</label>
+                      <textarea value={description} onChange={e => setDescription(e.target.value)} rows={4} className="w-full px-5 py-4 bg-surface-container-low border border-outline-variant rounded-2xl outline-none font-medium text-sm focus:border-primary transition-all resize-none" />
+                    </div>
+                  </div>
                 </div>
-                <div className="col-span-2 md:col-span-1 space-y-2">
-                  <label className="text-[10px] font-black uppercase tracking-widest text-outline">Square Footage</label>
-                  <input value={sqft} onChange={e => setSqft(e.target.value)} className="w-full px-5 py-4 bg-surface-container-low border border-outline-variant rounded-2xl outline-none font-medium text-sm focus:border-primary transition-all" />
+
+                {/* Modal Footer */}
+                <div className="p-8 pt-4 bg-white border-t border-outline-variant shrink-0">
+                  <div className="flex gap-4">
+                    <button onClick={() => setShowEditModal(false)} className="flex-1 py-4 rounded-2xl font-black text-xs uppercase tracking-widest text-outline hover:text-on-surface hover:bg-surface-container transition-all">Cancel</button>
+                    <button onClick={handleUpdate} className="flex-1 py-4 bg-primary text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl shadow-primary/20 hover:scale-[1.02] active:scale-95 transition-all">Save Changes</button>
+                  </div>
                 </div>
-                <div className="col-span-2 md:col-span-1 space-y-2">
-                  <label className="text-[10px] font-black uppercase tracking-widest text-outline">Property Type</label>
-                  <select value={type} onChange={e => setType(e.target.value)} className="w-full px-5 py-4 bg-surface-container-low border border-outline-variant rounded-2xl outline-none font-medium text-sm focus:border-primary transition-all">
-                    <option>Single Family</option>
-                    <option>Villa</option>
-                    <option>Penthouse</option>
-                    <option>Mansion</option>
-                    <option>Apartment</option>
-                    <option>Loft</option>
-                  </select>
-                </div>
-                <div className="col-span-2 md:col-span-1 space-y-2">
-                  <label className="text-[10px] font-black uppercase tracking-widest text-outline">Bedrooms</label>
-                  <input type="number" value={bedrooms} onChange={e => setBedrooms(e.target.value)} className="w-full px-5 py-4 bg-surface-container-low border border-outline-variant rounded-2xl outline-none font-medium text-sm focus:border-primary transition-all" />
-                </div>
-                <div className="col-span-2 md:col-span-1 space-y-2">
-                  <label className="text-[10px] font-black uppercase tracking-widest text-outline">Bathrooms</label>
-                  <input type="number" value={bathrooms} onChange={e => setBathrooms(e.target.value)} className="w-full px-5 py-4 bg-surface-container-low border border-outline-variant rounded-2xl outline-none font-medium text-sm focus:border-primary transition-all" />
-                </div>
-                <div className="col-span-2 md:col-span-1 space-y-2">
-                  <label className="text-[10px] font-black uppercase tracking-widest text-outline">Year Built</label>
-                  <input type="number" value={yearBuilt} onChange={e => setYearBuilt(e.target.value)} className="w-full px-5 py-4 bg-surface-container-low border border-outline-variant rounded-2xl outline-none font-medium text-sm focus:border-primary transition-all" />
-                </div>
-                <div className="col-span-2 space-y-2">
-                  <label className="text-[10px] font-black uppercase tracking-widest text-outline">Location Address</label>
-                  <input value={location} onChange={e => setLocation(e.target.value)} className="w-full px-5 py-4 bg-surface-container-low border border-outline-variant rounded-2xl outline-none font-medium text-sm focus:border-primary transition-all" />
-                </div>
-                <div className="col-span-2 space-y-2">
-                  <label className="text-[10px] font-black uppercase tracking-widest text-outline">Image URLs (comma separated)</label>
-                  <input value={imageUrls} onChange={e => setImageUrls(e.target.value)} className="w-full px-5 py-4 bg-surface-container-low border border-outline-variant rounded-2xl outline-none font-medium text-sm focus:border-primary transition-all" />
-                </div>
-                <div className="col-span-2 space-y-2">
-                  <label className="text-[10px] font-black uppercase tracking-widest text-outline">Description</label>
-                  <textarea value={description} onChange={e => setDescription(e.target.value)} rows={4} className="w-full px-5 py-4 bg-surface-container-low border border-outline-variant rounded-2xl outline-none font-medium text-sm focus:border-primary transition-all resize-none" />
-                </div>
-              </div>
-              <div className="flex gap-4 pt-4">
-                <button onClick={() => setShowEditModal(false)} className="flex-1 py-4 rounded-2xl font-black text-xs uppercase tracking-widest text-outline hover:text-on-surface transition-all">Cancel</button>
-                <button onClick={handleUpdate} className="flex-1 py-4 bg-primary text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl shadow-primary/20 hover:scale-[1.02] active:scale-95 transition-all">Save Changes</button>
-              </div>
-            </motion.div>
+              </motion.div>
+            </div>
           </div>
         )}
       </AnimatePresence>
