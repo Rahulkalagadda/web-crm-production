@@ -58,6 +58,9 @@ export interface Lead {
   notes?: string;
   status?: string;
   budget?: string | number;
+  interestedProperty?: string;
+  preapprovalStatus?: string;
+  expectedCloseDate?: string;
   stageId: string;
   creatorId: string;
   assigneeId?: string;

@@ -63,6 +63,66 @@ export const ReportsAnalytics: React.FC = () => {
       };
     });
   }, [leads, pipelineStages]);
+  
+  // Revenue Forecast Computation
+  const revenueForecast = useMemo(() => {
+    const now = new Date();
+    const data = [];
+    
+    // Total 10 bars (7 historical, 3 forecast)
+    for (let i = -6; i <= 3; i++) {
+      const targetMonth = new Date(now.getFullYear(), now.getMonth() + i, 1);
+      const isHistorical = i <= 0;
+      
+      let value = 0;
+      if (isHistorical) {
+        value = leads
+          .filter(l => {
+            const d = new Date(l.createdAt);
+            return d.getMonth() === targetMonth.getMonth() && 
+                   d.getFullYear() === targetMonth.getFullYear() &&
+                   l.stageId === closedStage?.id;
+          })
+          .reduce((sum, l) => sum + (Number(l.budget) || 0), 0);
+      } else {
+        value = leads
+          .filter(l => {
+            if (!l.expectedCloseDate) return false;
+            const d = new Date(l.expectedCloseDate);
+            return d.getMonth() === targetMonth.getMonth() && 
+                   d.getFullYear() === targetMonth.getFullYear();
+          })
+          .reduce((sum, l) => sum + (Number(l.budget) || 0), 0);
+      }
+      
+      data.push({
+        label: targetMonth.toLocaleString('default', { month: 'short', year: 'numeric' }),
+        value,
+        isHistorical
+      });
+    }
+
+    const maxValue = Math.max(...data.map(d => d.value), 100000);
+    return data.map(d => ({
+      ...d,
+      height: valueToHeight(d.value, maxValue),
+      displayValue: fmt(d.value)
+    }));
+
+    function valueToHeight(val: number, max: number) {
+      if (val === 0) return '8%'; // Minimal height for empty months
+      return `${Math.max(12, (val / max) * 100)}%`;
+    }
+  }, [leads, closedStage]);
+
+  const forecastLabels = useMemo(() => {
+    if (revenueForecast.length === 0) return { start: '', mid: '', end: '' };
+    return {
+      start: revenueForecast[0].label,
+      mid: revenueForecast[Math.floor(revenueForecast.length / 2)].label,
+      end: `${revenueForecast[revenueForecast.length - 1].label} (Forecast)`
+    };
+  }, [revenueForecast]);
 
   return (
     <div className="p-8 space-y-8 max-w-[1400px] mx-auto" style={{ fontFamily: 'Inter, sans-serif' }}>
@@ -145,34 +205,29 @@ export const ReportsAnalytics: React.FC = () => {
                 <div key={i} className="border-t border-gray-100 w-full h-0"></div>
               ))}
             </div>
-            {[
-              { h: '40%', s: true }, { h: '55%', s: true }, { h: '45%', s: true }, 
-              { h: '65%', s: true }, { h: '85%', s: true }, { h: '70%', s: true }, 
-              { h: '95%', s: true }, { h: '60%', s: false }, { h: '75%', s: false }, 
-              { h: '80%', s: false }
-            ].map((bar, i) => (
+            {revenueForecast.map((bar, i) => (
               <motion.div
                 key={i}
                 initial={{ height: 0 }}
-                animate={{ height: bar.h }}
+                animate={{ height: bar.height }}
                 transition={{ duration: 0.8, delay: 0.2 + i * 0.05 }}
                 className={`flex-1 rounded-t-lg relative group transition-all ${
-                  bar.s 
+                  bar.isHistorical 
                     ? 'bg-primary' 
                     : 'bg-primary-container border-2 border-dashed border-primary/30'
                 }`}
-                style={{ opacity: bar.s ? 1 : 0.6 }}
+                style={{ opacity: bar.isHistorical ? 1 : 0.6 }}
               >
-                <div className="absolute -top-10 left-1/2 -translate-x-1/2 bg-on-surface text-white text-[10px] px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
-                  ₹{(Math.random() * 5 + 1).toFixed(1)} Cr
+                <div className="absolute -top-10 left-1/2 -translate-x-1/2 bg-on-surface text-white text-[10px] px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-10 shadow-xl">
+                  {bar.label}: {bar.displayValue}
                 </div>
               </motion.div>
             ))}
           </div>
           <div className="flex justify-between mt-6 text-[10px] font-semibold uppercase tracking-widest" style={{ color: 'var(--outline)' }}>
-            <span>Oct 2024</span>
-            <span>Nov 2024</span>
-            <span>Dec 2024 (Forecast)</span>
+            <span>{forecastLabels.start}</span>
+            <span>{forecastLabels.mid}</span>
+            <span>{forecastLabels.end}</span>
           </div>
         </motion.div>
 

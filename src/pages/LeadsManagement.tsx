@@ -25,6 +25,10 @@ export const LeadsManagement: React.FC = () => {
   const [newPhone, setNewPhone] = useState('');
   const [newNotes, setNewNotes] = useState('');
   const [newBudget, setNewBudget] = useState('');
+  const [newSource, setNewSource] = useState('Web Admin');
+  const [newInterestedProperty, setNewInterestedProperty] = useState('');
+  const [newPreapprovalStatus, setNewPreapprovalStatus] = useState('');
+  const [newExpectedCloseDate, setNewExpectedCloseDate] = useState('');
 
   useEffect(() => {
     const fetchData = async () => {
@@ -91,8 +95,11 @@ export const LeadsManagement: React.FC = () => {
         phone: newPhone,
         notes: newNotes,
         budget: parseFloat(newBudget) || 0,
+        source: newSource,
+        interestedProperty: newInterestedProperty,
+        preapprovalStatus: newPreapprovalStatus,
+        expectedCloseDate: newExpectedCloseDate ? new Date(newExpectedCloseDate).toISOString() : undefined,
         stageId: pipelineStages[0].id,
-        source: 'Web Admin',
       });
       
       if (response.success) {
@@ -103,6 +110,10 @@ export const LeadsManagement: React.FC = () => {
         setNewPhone('');
         setNewNotes('');
         setNewBudget('');
+        setNewSource('Web Admin');
+        setNewInterestedProperty('');
+        setNewPreapprovalStatus('');
+        setNewExpectedCloseDate('');
         setShowAddModal(false);
       }
     } catch (error) {
@@ -430,6 +441,28 @@ export const LeadsManagement: React.FC = () => {
                   <div className="col-span-2 md:col-span-1 space-y-2">
                     <label className="text-[10px] font-black uppercase tracking-widest text-outline">Budget (₹)</label>
                     <input type="number" value={newBudget} onChange={e => setNewBudget(e.target.value)} className="w-full px-5 py-4 bg-surface-container-low border border-outline-variant rounded-2xl outline-none font-medium text-sm focus:border-primary transition-all" placeholder="e.g. 500000" />
+                  </div>
+                  <div className="col-span-2 md:col-span-1 space-y-2">
+                    <label className="text-[10px] font-black uppercase tracking-widest text-outline">Lead Source</label>
+                    <select value={newSource} onChange={e => setNewSource(e.target.value)} className="w-full px-5 py-4 bg-surface-container-low border border-outline-variant rounded-2xl outline-none font-medium text-sm focus:border-primary transition-all appearance-none">
+                      <option value="Web Admin">Web Admin</option>
+                      <option value="Referral">Referral</option>
+                      <option value="Social Media">Social Media</option>
+                      <option value="Walk-in">Walk-in</option>
+                      <option value="Cold Call">Cold Call</option>
+                    </select>
+                  </div>
+                  <div className="col-span-2 md:col-span-1 space-y-2">
+                    <label className="text-[10px] font-black uppercase tracking-widest text-outline">Interested Property</label>
+                    <input value={newInterestedProperty} onChange={e => setNewInterestedProperty(e.target.value)} className="w-full px-5 py-4 bg-surface-container-low border border-outline-variant rounded-2xl outline-none font-medium text-sm focus:border-primary transition-all" placeholder="e.g. 742 Evergreen Terrace" />
+                  </div>
+                  <div className="col-span-2 md:col-span-1 space-y-2">
+                    <label className="text-[10px] font-black uppercase tracking-widest text-outline">Pre-Approval Status</label>
+                    <input value={newPreapprovalStatus} onChange={e => setNewPreapprovalStatus(e.target.value)} className="w-full px-5 py-4 bg-surface-container-low border border-outline-variant rounded-2xl outline-none font-medium text-sm focus:border-primary transition-all" placeholder="e.g. Verified ₹10 Cr" />
+                  </div>
+                  <div className="col-span-2 md:col-span-1 space-y-2">
+                    <label className="text-[10px] font-black uppercase tracking-widest text-outline">Expected Close Date</label>
+                    <input type="date" value={newExpectedCloseDate} onChange={e => setNewExpectedCloseDate(e.target.value)} className="w-full px-5 py-4 bg-surface-container-low border border-outline-variant rounded-2xl outline-none font-medium text-sm focus:border-primary transition-all" />
                   </div>
                 </div>
 
