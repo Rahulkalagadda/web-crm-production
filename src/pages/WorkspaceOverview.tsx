@@ -20,7 +20,7 @@ const fmt = (v: number) => v >= 10000000 ? `₹${(v / 10000000).toFixed(2)} Cr` 
 export const WorkspaceOverview: React.FC = () => {
   const { leads, setLeads, pipelineStages, setPipelineStages, getPipelineValue, getConversionRate } = useCRMStore();
   const { users, setUsers } = useUsersStore();
-  const { tasks, setTasks } = useTasksStore();
+  const { setTasks } = useTasksStore();
 
   const [loading, setLoading] = useState(true);
   const [activities, setActivities] = useState<any[]>([]);
