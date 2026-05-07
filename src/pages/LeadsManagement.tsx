@@ -409,9 +409,9 @@ export const LeadsManagement: React.FC = () => {
               initial={{ opacity: 0, scale: 0.95, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95 }}
-              className="relative w-full max-w-xl bg-white rounded-3xl shadow-2xl overflow-hidden"
+              className="relative w-full max-w-xl bg-white rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]"
             >
-              <div className="p-8 space-y-8">
+              <div className="p-8 space-y-8 overflow-y-auto custom-scrollbar">
                 <header>
                   <h3 className="text-2xl font-black text-on-surface">Add New Elite Lead</h3>
                   <p className="text-sm font-medium text-outline mt-1">Populate lead information to begin the conversion process.</p>
