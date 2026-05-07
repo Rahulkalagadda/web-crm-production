@@ -61,6 +61,7 @@ export interface Lead {
   interestedProperty?: string;
   preapprovalStatus?: string;
   expectedCloseDate?: string;
+  location?: string;
   stageId: string;
   creatorId: string;
   assigneeId?: string;

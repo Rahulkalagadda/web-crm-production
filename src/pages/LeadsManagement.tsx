@@ -29,6 +29,7 @@ export const LeadsManagement: React.FC = () => {
   const [newInterestedProperty, setNewInterestedProperty] = useState('');
   const [newPreapprovalStatus, setNewPreapprovalStatus] = useState('');
   const [newExpectedCloseDate, setNewExpectedCloseDate] = useState('');
+  const [newLocation, setNewLocation] = useState('');
 
   useEffect(() => {
     const fetchData = async () => {
@@ -99,6 +100,7 @@ export const LeadsManagement: React.FC = () => {
         interestedProperty: newInterestedProperty,
         preapprovalStatus: newPreapprovalStatus,
         expectedCloseDate: newExpectedCloseDate ? new Date(newExpectedCloseDate).toISOString() : undefined,
+        location: newLocation,
         stageId: pipelineStages[0].id,
       });
       
@@ -114,6 +116,7 @@ export const LeadsManagement: React.FC = () => {
         setNewInterestedProperty('');
         setNewPreapprovalStatus('');
         setNewExpectedCloseDate('');
+        setNewLocation('');
         setShowAddModal(false);
       }
     } catch (error) {
@@ -463,6 +466,10 @@ export const LeadsManagement: React.FC = () => {
                   <div className="col-span-2 md:col-span-1 space-y-2">
                     <label className="text-[10px] font-black uppercase tracking-widest text-outline">Expected Close Date</label>
                     <input type="date" value={newExpectedCloseDate} onChange={e => setNewExpectedCloseDate(e.target.value)} className="w-full px-5 py-4 bg-surface-container-low border border-outline-variant rounded-2xl outline-none font-medium text-sm focus:border-primary transition-all" />
+                  </div>
+                  <div className="col-span-2 space-y-2">
+                    <label className="text-[10px] font-black uppercase tracking-widest text-outline">Lead Location</label>
+                    <input value={newLocation} onChange={e => setNewLocation(e.target.value)} className="w-full px-5 py-4 bg-surface-container-low border border-outline-variant rounded-2xl outline-none font-medium text-sm focus:border-primary transition-all" placeholder="e.g. Los Angeles, CA" />
                   </div>
                 </div>
 

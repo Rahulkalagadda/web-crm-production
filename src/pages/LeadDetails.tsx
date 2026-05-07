@@ -158,7 +158,7 @@ export const LeadDetails: React.FC = () => {
                 )}
               </span>
               <span className="w-1.5 h-1.5 bg-outline-variant rounded-full"></span>
-              <span className="flex items-center gap-1.5"><span className="material-symbols-outlined text-sm text-primary">location_on</span> Los Angeles, CA</span>
+              <span className="flex items-center gap-1.5"><span className="material-symbols-outlined text-sm text-primary">location_on</span> {lead.location || 'Location Not Set'}</span>
             </div>
           </div>
         </div>
