@@ -185,9 +185,14 @@ export const Pipeline: React.FC = () => {
 
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-1.5">
-                          <img className="w-5 h-5 rounded-full object-cover" src={`https://i.pravatar.cc/100?u=${deal.assigneeId}`} alt={deal.assigneeId} />
-                          <span className="text-[10px] font-semibold uppercase tracking-wide" style={{ color: 'var(--outline)' }}>{deal.assigneeId ? 'Assigned' : 'Unassigned'}</span>
+                          <img className="w-6 h-6 rounded-full object-cover ring-2 ring-white" src={`https://i.pravatar.cc/100?u=${deal.assigneeId || 'unassigned'}`} alt="" />
+                          <span className="text-[10px] font-black uppercase tracking-widest" style={{ color: 'var(--outline)' }}>
+                            {users.find(u => u.id === deal.assigneeId)?.firstName || 'Unassigned'}
+                          </span>
                         </div>
+                        <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-surface-container-highest text-outline uppercase tracking-widest">
+                          {deal.source || 'Direct'}
+                        </span>
                       </div>
 
                       <div className="flex gap-1 mt-3 pt-3" style={{ borderTop: '1px solid var(--outline-variant)' }}>

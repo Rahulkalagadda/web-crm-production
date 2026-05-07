@@ -9,7 +9,13 @@ interface CRMStore {
     status: string;
     search: string;
   };
-  setLeads: (leads: Lead[]) => void;
+  pagination: {
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+  };
+  setLeads: (leads: Lead[], pagination?: CRMStore['pagination']) => void;
   addLead: (lead: Lead) => void;
   updateLead: (id: string, updates: Partial<Lead>) => void;
   deleteLead: (id: string) => void;
@@ -32,8 +38,17 @@ export const useCRMStore = create<CRMStore>((set, get) => ({
     status: 'All',
     search: '',
   },
+  pagination: {
+    total: 0,
+    page: 1,
+    limit: 10,
+    totalPages: 0
+  },
   
-  setLeads: (leads) => set({ leads }),
+  setLeads: (leads, pagination) => set((state) => ({ 
+    leads, 
+    pagination: pagination || state.pagination 
+  })),
   addLead: (lead) => set((state) => ({ leads: [lead, ...state.leads] })),
   updateLead: (id, updates) => set((state) => ({
     leads: state.leads.map(l => l.id === id ? { ...l, ...updates } : l)

@@ -10,7 +10,7 @@ import { pipelineService } from '../services/pipeline.service';
 
 export const LeadsManagement: React.FC = () => {
   const navigate = useNavigate();
-  const { leads, setLeads, addLead, pipelineStages, setPipelineStages, filters, setFilters } = useCRMStore();
+  const { leads, setLeads, addLead, pipelineStages, setPipelineStages, filters, setFilters, pagination } = useCRMStore();
   const { users, setUsers } = useUsersStore();
   
   const [loading, setLoading] = useState(true);
@@ -31,27 +31,41 @@ export const LeadsManagement: React.FC = () => {
   const [newExpectedCloseDate, setNewExpectedCloseDate] = useState('');
   const [newLocation, setNewLocation] = useState('');
 
-  useEffect(() => {
-    const fetchData = async () => {
-      setLoading(true);
-      try {
-        const [leadsRes, stagesRes, usersRes] = await Promise.all([
-          leadsService.getLeads(),
-          pipelineService.getStages(),
-          usersService.getUsers()
-        ]);
-        
-        if (leadsRes.success) setLeads(leadsRes.data);
-        if (stagesRes.success) setPipelineStages(stagesRes.data);
-        if (usersRes.success) setUsers(usersRes.data);
-      } catch (error) {
-        console.error('Failed to fetch CRM data', error);
-      } finally {
-        setLoading(false);
+  const fetchData = async (page = 1, limit = 50) => {
+    setLoading(true);
+    try {
+      const [leadsRes, stagesRes, usersRes] = await Promise.all([
+        leadsService.getLeads({ 
+          page, 
+          limit, 
+          stageId: filters.status !== 'All' ? filters.status : undefined,
+          search: filters.search || undefined
+        }),
+        pipelineService.getStages(),
+        usersService.getUsers()
+      ]);
+      
+      if (leadsRes.success) {
+        // The backend returns { success: true, data: Lead[], meta: { ... } }
+        // leadsRes is the whole response body because of how apiClient is likely configured
+        const res = leadsRes as any;
+        setLeads(res.data, res.meta);
       }
-    };
-    fetchData();
-  }, [setLeads, setPipelineStages, setUsers]);
+      if (stagesRes.success) setPipelineStages(stagesRes.data);
+      if (usersRes.success) setUsers(usersRes.data);
+    } catch (error) {
+      console.error('Failed to fetch CRM data', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      fetchData(1, pagination.limit);
+    }, 300); // Debounce search
+    return () => clearTimeout(timer);
+  }, [filters.status, filters.search]);
 
   const handleAssignLead = async (leadId: string, assigneeId: string) => {
     try {
@@ -65,15 +79,8 @@ export const LeadsManagement: React.FC = () => {
     setAssigningId(null);
   };
 
-  const filtered = leads.filter(l => {
-    const stageMatches = filters.status === 'All' || l.stageId === filters.status;
-    const searchLower = filters.search.toLowerCase();
-    const searchMatches = 
-      l.firstName.toLowerCase().includes(searchLower) || 
-      l.lastName.toLowerCase().includes(searchLower) || 
-      l.email?.toLowerCase().includes(searchLower);
-    return stageMatches && searchMatches;
-  });
+  // Search and stage filtering are now handled by the backend
+  const filtered = leads;
 
   const toggleSelect = (id: string) =>
     setSelected(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
@@ -133,8 +140,7 @@ export const LeadsManagement: React.FC = () => {
       const response = await leadsService.bulkUpload(file);
       if (response.success) {
         // Refresh leads
-        const leadsRes = await leadsService.getLeads();
-        if (leadsRes.success) setLeads(leadsRes.data);
+        fetchData(1, pagination.limit);
         alert(`${response.data.count} leads imported successfully!`);
       } else {
         alert('Failed to import leads. Please check the file format.');
@@ -173,7 +179,7 @@ export const LeadsManagement: React.FC = () => {
             Leads Management
           </h1>
           <p className="text-xs md:text-sm mt-1 text-outline">
-            {leads.length} active leads · {loading ? 'Refreshing...' : 'Updated just now'}
+            {pagination.total} active leads · {loading ? 'Refreshing...' : 'Updated just now'}
           </p>
         </div>
         <div className="flex flex-wrap gap-2 md:gap-3">
@@ -383,14 +389,36 @@ export const LeadsManagement: React.FC = () => {
         {/* Pagination */}
         <div className="flex flex-col sm:flex-row items-center justify-between gap-4 px-6 md:px-8 py-6 bg-surface-container-low/30 border-t border-outline-variant">
           <p className="text-[10px] font-black text-outline uppercase tracking-widest text-center sm:text-left">
-            Showing <span className="text-on-surface">{filtered.length}</span> of <span className="text-on-surface">{leads.length}</span> Elite Leads
+            Showing <span className="text-on-surface">{Math.min((pagination.page - 1) * pagination.limit + 1, pagination.total)} - {Math.min(pagination.page * pagination.limit, pagination.total)}</span> of <span className="text-on-surface">{pagination.total}</span> Elite Leads
           </p>
           <div className="flex items-center gap-2">
-            <button className="w-9 h-9 md:w-10 md:h-10 flex items-center justify-center rounded-xl border border-outline-variant bg-white text-outline hover:text-primary transition-all shadow-sm">
+            <button 
+              disabled={pagination.page <= 1}
+              onClick={() => fetchData(pagination.page - 1, pagination.limit)}
+              className={`w-9 h-9 md:w-10 md:h-10 flex items-center justify-center rounded-xl border border-outline-variant bg-white text-outline hover:text-primary transition-all shadow-sm ${pagination.page <= 1 ? 'opacity-50 cursor-not-allowed' : ''}`}
+            >
               <span className="material-symbols-outlined text-[20px]">chevron_left</span>
             </button>
-            <button className="w-9 h-9 md:w-10 md:h-10 flex items-center justify-center rounded-xl text-xs font-black bg-primary text-white shadow-lg shadow-primary/20">1</button>
-            <button className="w-9 h-9 md:w-10 md:h-10 flex items-center justify-center rounded-xl border border-outline-variant bg-white text-outline hover:text-primary transition-all shadow-sm">
+            <div className="flex items-center gap-1">
+              {[...Array(pagination.totalPages)].map((_, i) => (
+                <button
+                  key={i}
+                  onClick={() => fetchData(i + 1, pagination.limit)}
+                  className={`w-9 h-9 md:w-10 md:h-10 flex items-center justify-center rounded-xl text-xs font-black transition-all ${
+                    pagination.page === i + 1 
+                      ? 'bg-primary text-white shadow-lg shadow-primary/20' 
+                      : 'bg-white border border-outline-variant text-outline hover:text-primary'
+                  }`}
+                >
+                  {i + 1}
+                </button>
+              )).slice(Math.max(0, pagination.page - 3), Math.min(pagination.totalPages, pagination.page + 2))}
+            </div>
+            <button 
+              disabled={pagination.page >= pagination.totalPages}
+              onClick={() => fetchData(pagination.page + 1, pagination.limit)}
+              className={`w-9 h-9 md:w-10 md:h-10 flex items-center justify-center rounded-xl border border-outline-variant bg-white text-outline hover:text-primary transition-all shadow-sm ${pagination.page >= pagination.totalPages ? 'opacity-50 cursor-not-allowed' : ''}`}
+            >
               <span className="material-symbols-outlined text-[20px]">chevron_right</span>
             </button>
           </div>
