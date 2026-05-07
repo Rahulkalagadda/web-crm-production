@@ -15,5 +15,8 @@ export interface Activity {
 export const activitiesService = {
   getLeadActivities: async (leadId: string, params?: any): Promise<ApiResponse<Activity[]>> => {
     return apiClient.get(`/activities/lead/${leadId}`, { params });
+  },
+  getActivities: async (params?: any): Promise<ApiResponse<Activity[]>> => {
+    return apiClient.get('/activities', { params });
   }
 };

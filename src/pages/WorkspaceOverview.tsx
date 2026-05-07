@@ -1,4 +1,4 @@
-import React, { useMemo, useEffect } from 'react';
+import React, { useMemo, useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { useCRMStore } from '../store/crmStore';
 import { useUsersStore } from '../store/usersStore';
@@ -7,6 +7,7 @@ import { leadsService } from '../services/leads.service';
 import { pipelineService } from '../services/pipeline.service';
 import { usersService } from '../services/users.service';
 import { tasksService } from '../services/tasks.service';
+import { activitiesService } from '../services/activities.service';
 
 const fadeUp = (delay = 0) => ({
   initial: { opacity: 0, y: 16 },
@@ -21,22 +22,25 @@ export const WorkspaceOverview: React.FC = () => {
   const { users, setUsers } = useUsersStore();
   const { tasks, setTasks } = useTasksStore();
 
-  const [loading, setLoading] = React.useState(true);
+  const [loading, setLoading] = useState(true);
+  const [activities, setActivities] = useState<any[]>([]);
 
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
       try {
-        const [leadsRes, stagesRes, usersRes, tasksRes] = await Promise.all([
+        const [leadsRes, stagesRes, usersRes, tasksRes, actsRes] = await Promise.all([
           leadsService.getLeads(),
           pipelineService.getStages(),
           usersService.getUsers(),
-          tasksService.getTasks()
+          tasksService.getTasks(),
+          activitiesService.getActivities()
         ]);
         if (leadsRes.success) setLeads(leadsRes.data);
         if (stagesRes.success) setPipelineStages(stagesRes.data);
         if (usersRes.success) setUsers(usersRes.data);
         if (tasksRes.success) setTasks(tasksRes.data);
+        if (actsRes.success) setActivities(actsRes.data);
       } catch (error) {
         console.error('Failed to sync workspace data', error);
       } finally {
@@ -45,6 +49,17 @@ export const WorkspaceOverview: React.FC = () => {
     };
     fetchData();
   }, [setLeads, setPipelineStages, setUsers, setTasks]);
+
+  const getTimeAgo = (date: Date) => {
+    const diff = new Date().getTime() - date.getTime();
+    const minutes = Math.floor(diff / 60000);
+    if (minutes < 1) return 'Just now';
+    if (minutes < 60) return `${minutes}m ago`;
+    const hours = Math.floor(minutes / 60);
+    if (hours < 24) return `${hours}h ago`;
+    const days = Math.floor(hours / 24);
+    return `${days}d ago`;
+  };
 
   // Computed KPIs
   const totalLeads = leads.length;
@@ -93,25 +108,42 @@ export const WorkspaceOverview: React.FC = () => {
     }).sort((a, b) => b.revValue - a.revValue).slice(0, 4);
   }, [users, leads, pipelineStages]);
 
-  // Computed Recent Activities (Derived from Tasks and Leads)
+  // Computed Recent Activities
   const recentActivities = useMemo(() => {
-    const acts: any[] = [];
-    // Add recent leads
-    leads.slice(0, 2).forEach(l => {
-      acts.push({
-        icon: 'person_add', iconBg: '#eef2ff', iconColor: '#4F46E5',
-        title: `New Lead: ${l.firstName} ${l.lastName} added`, time: 'Recently', sub: `Source: ${l.source}`
-      });
-    });
-    // Add completed tasks
-    tasks.filter(t => t.isCompleted).slice(0, 2).forEach(t => {
-      acts.push({
-        icon: 'task_alt', iconBg: '#ecfdf5', iconColor: '#059669',
-        title: `Task Completed: ${t.title}`, time: 'Recently', sub: `Assigned to: ${t.userId}`
-      });
-    });
-    return acts;
-  }, [leads, tasks]);
+    return activities.map(act => {
+      let icon = 'notifications';
+      let iconBg = '#f1f5f9';
+      let iconColor = '#64748b';
+      let title = act.type;
+      
+      switch(act.type) {
+        case 'LEAD_CREATED':
+          icon = 'person_add'; iconBg = '#eef2ff'; iconColor = '#4F46E5';
+          title = `New lead created`;
+          break;
+        case 'STAGE_CHANGED':
+          icon = 'sync'; iconBg = '#fff7ed'; iconColor = '#f97316';
+          title = `Stage updated`;
+          break;
+        case 'TASK_COMPLETED':
+          icon = 'task_alt'; iconBg = '#f0fdf4'; iconColor = '#22c55e';
+          title = `Task completed`;
+          break;
+        case 'NOTE_ADDED':
+          icon = 'description'; iconBg = '#eff6ff'; iconColor = '#3b82f6';
+          title = `Note added`;
+          break;
+      }
+
+      return {
+        ...act,
+        icon, iconBg, iconColor,
+        title: `${title} by ${act.user?.firstName || 'System'}`,
+        time: getTimeAgo(new Date(act.createdAt)),
+        sub: act.metadata?.leadName ? `Lead: ${act.metadata.leadName}` : ''
+      };
+    }).slice(0, 5);
+  }, [activities]);
 
   // Lead Sources Computation
   const sources = useMemo(() => {
